@@ -1,0 +1,44 @@
+<?php
+
+namespace Spatie\SuspiciousLogin\Presets;
+
+use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
+use Spatie\SuspiciousLogin\Checks\CredentialStuffingCheck;
+use Spatie\SuspiciousLogin\Checks\FailedAttemptsCheck;
+use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
+use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
+use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
+use Spatie\SuspiciousLogin\Checks\NewIpCheck;
+use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
+use Spatie\SuspiciousLogin\Enums\RiskLevel;
+
+/**
+ * Notifies users about suspicious logins, but never blocks them.
+ */
+class Balanced extends Preset
+{
+    protected int $mediumRiskThreshold = 40;
+
+    protected int $highRiskThreshold = 70;
+
+    public function checks(): array
+    {
+        return [
+            NewDeviceCheck::new()->score(25),
+            NewIpCheck::new()->score(10),
+            NewCountryCheck::new()->score(30),
+            ImpossibleTravelCheck::new()->score(60),
+            FailedAttemptsCheck::new()->threshold(5)->withinMinutes(15)->score(30),
+            CredentialStuffingCheck::new()->threshold(5)->score(40),
+            SuspiciousUserAgentCheck::new()->score(20),
+        ];
+    }
+
+    public function actions(RiskLevel $riskLevel): array
+    {
+        return match ($riskLevel) {
+            RiskLevel::Medium, RiskLevel::High => [NotifyUserAction::new()],
+            default => [],
+        };
+    }
+}
