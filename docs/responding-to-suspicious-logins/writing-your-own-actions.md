@@ -31,13 +31,14 @@ class LogToSecurityChannelAction extends Action
 Use it in your preset like any other action:
 
 ```php
-public function actions(RiskLevel $riskLevel): array
+public function onMediumRisk(): Action|array
 {
-    return match ($riskLevel) {
-        RiskLevel::Medium => [NotifyUserAction::new()],
-        RiskLevel::High => [NotifyUserAction::new(), LogToSecurityChannelAction::new()],
-        default => [],
-    };
+    return NotifyUserAction::new();
+}
+
+public function onHighRisk(): Action|array
+{
+    return [NotifyUserAction::new(), LogToSecurityChannelAction::new()];
 }
 ```
 

@@ -6,17 +6,18 @@ weight: 2
 Sometimes telling the user afterwards isn't enough. `Spatie\SuspiciousLogin\Actions\BlockLoginAction` stops a suspicious login before the user gets in. The `Strict` preset uses it for high risk logins.
 
 ```php
+use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
-public function actions(RiskLevel $riskLevel): array
+public function onMediumRisk(): Action|array
 {
-    return match ($riskLevel) {
-        RiskLevel::Medium => [NotifyUserAction::new()],
-        RiskLevel::High => [NotifyUserAction::new(), BlockLoginAction::new()],
-        default => [],
-    };
+    return NotifyUserAction::new();
+}
+
+public function onHighRisk(): Action|array
+{
+    return [NotifyUserAction::new(), BlockLoginAction::new()];
 }
 ```
 
@@ -29,7 +30,7 @@ When it runs, the action:
 
 Because the login happens inside `Auth::attempt()`, that exception comes out of your login controller like any other validation error. A regular form redirects back with an error on the `email` field, and a JSON request gets a 422 response. Breeze, Jetstream and Fortify show the error without any changes.
 
-The exception ends the request, so always put `BlockLoginAction` after the other actions.
+The exception ends the request, so always put `BlockLoginAction` last in the array.
 
 ## Customizing the error
 

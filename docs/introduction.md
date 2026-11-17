@@ -28,12 +28,12 @@ The package listens for Laravel's own login events, so it works with Breeze, Jet
 What the package checks and how it responds is decided by a preset. A preset is a small PHP class that lists the checks to run, how much each one weighs, where the risk levels start, and which actions run for each level. The package ships with four presets, and writing your own takes a few lines:
 
 ```php
+use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\CountryCheck;
 use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
 use Spatie\SuspiciousLogin\Presets\Preset;
 
 class MyPreset extends Preset
@@ -51,13 +51,14 @@ class MyPreset extends Preset
         ];
     }
 
-    public function actions(RiskLevel $riskLevel): array
+    public function onMediumRisk(): Action|array
     {
-        return match ($riskLevel) {
-            RiskLevel::Medium => [NotifyUserAction::new()],
-            RiskLevel::High => [NotifyUserAction::new(), BlockLoginAction::new()],
-            default => [],
-        };
+        return NotifyUserAction::new();
+    }
+
+    public function onHighRisk(): Action|array
+    {
+        return [NotifyUserAction::new(), BlockLoginAction::new()];
     }
 }
 ```

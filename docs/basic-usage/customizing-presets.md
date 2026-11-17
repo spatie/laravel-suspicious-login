@@ -44,20 +44,22 @@ Then register it in `config/suspicious-login.php`:
 
 ## Writing your own preset
 
-To start from scratch, extend `Spatie\SuspiciousLogin\Presets\Preset`. It has two methods to implement:
+To start from scratch, extend `Spatie\SuspiciousLogin\Presets\Preset`. It has one method you must implement, and two optional ones:
 
 - `checks()` returns the checks to run, each configured with its score and options.
-- `actions(RiskLevel $riskLevel)` returns the actions to run for a suspicious login of that risk level. It is only called for medium and high risk logins.
+- `onMediumRisk()` and `onHighRisk()` return what happens to a login at that level: a single action, or an array of actions that run in order. Leave one out and that level takes no action.
+
+The `$mediumRiskThreshold` and `$highRiskThreshold` properties decide where each level starts.
 
 ```php
 namespace App\SuspiciousLogin;
 
+use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\FailedAttemptsCheck;
 use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
 use Spatie\SuspiciousLogin\Presets\Preset;
 
 class AdminPanelPreset extends Preset
@@ -75,16 +77,17 @@ class AdminPanelPreset extends Preset
         ];
     }
 
-    public function actions(RiskLevel $riskLevel): array
+    public function onMediumRisk(): Action|array
     {
-        return match ($riskLevel) {
-            RiskLevel::Medium => [NotifyUserAction::new()],
-            RiskLevel::High => [
-                NotifyUserAction::new(),
-                BlockLoginAction::new()->message('This login was blocked. Ask a colleague to unlock your account.'),
-            ],
-            default => [],
-        };
+        return NotifyUserAction::new();
+    }
+
+    public function onHighRisk(): Action|array
+    {
+        return [
+            NotifyUserAction::new(),
+            BlockLoginAction::new()->message('This login was blocked. Ask a colleague to unlock your account.'),
+        ];
     }
 }
 ```
@@ -97,5 +100,5 @@ Scores are points, not percentages. A few guidelines that work well:
 - Give weak signals, such as a new IP address, a low score. They only matter when they add up with other signals.
 - The total is capped at 100, so scores above 100 behave the same as 100.
 
-If you want a completely different mapping from score to risk level, override the `riskLevel(int $score): RiskLevel` method of your preset.
+If you want a completely different mapping from score to risk level, override the `riskLevel(int $score): RiskLevel` method of your preset. `RiskLevel` is the `Spatie\SuspiciousLogin\Enums\RiskLevel` enum, with the cases `Low`, `Medium` and `High`.
 

@@ -64,9 +64,9 @@ class BlockLoginsFromNorthKorea extends Preset
         ];
     }
 
-    public function actions(RiskLevel $riskLevel): array
+    public function onHighRisk(): Action|array
     {
-        return $riskLevel === RiskLevel::High ? [new RecordAction] : [];
+        return new RecordAction;
     }
 }
 

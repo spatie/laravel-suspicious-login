@@ -6,15 +6,17 @@ weight: 1
 The person who knows best whether a login was them is the user. `Spatie\SuspiciousLogin\Actions\NotifyUserAction` sends them an email about the suspicious login, so they can change their password if it wasn't them. The `Lenient`, `Balanced` and `Strict` presets all use it.
 
 ```php
+use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
-public function actions(RiskLevel $riskLevel): array
+public function onMediumRisk(): Action|array
 {
-    return match ($riskLevel) {
-        RiskLevel::Medium, RiskLevel::High => [NotifyUserAction::new()],
-        default => [],
-    };
+    return NotifyUserAction::new();
+}
+
+public function onHighRisk(): Action|array
+{
+    return NotifyUserAction::new();
 }
 ```
 

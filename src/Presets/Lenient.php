@@ -2,13 +2,13 @@
 
 namespace Spatie\SuspiciousLogin\Presets;
 
+use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\CredentialStuffingCheck;
 use Spatie\SuspiciousLogin\Checks\FailedAttemptsCheck;
 use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
 use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
 /**
  * Only notifies users about logins that trip several checks at once.
@@ -30,11 +30,8 @@ class Lenient extends Preset
         ];
     }
 
-    public function actions(RiskLevel $riskLevel): array
+    public function onHighRisk(): Action|array
     {
-        return match ($riskLevel) {
-            RiskLevel::High => [NotifyUserAction::new()],
-            default => [],
-        };
+        return NotifyUserAction::new();
     }
 }

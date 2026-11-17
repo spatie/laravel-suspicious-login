@@ -2,7 +2,7 @@
 
 namespace Spatie\SuspiciousLogin\Presets;
 
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
+use Spatie\SuspiciousLogin\Actions\Action;
 
 /**
  * Runs the Balanced checks and records the results, but takes no action.
@@ -10,7 +10,12 @@ use Spatie\SuspiciousLogin\Enums\RiskLevel;
  */
 class MonitorOnly extends Balanced
 {
-    public function actions(RiskLevel $riskLevel): array
+    public function onMediumRisk(): Action|array
+    {
+        return [];
+    }
+
+    public function onHighRisk(): Action|array
     {
         return [];
     }

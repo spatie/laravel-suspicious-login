@@ -2,6 +2,7 @@
 
 namespace Spatie\SuspiciousLogin\Presets;
 
+use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\CredentialStuffingCheck;
 use Spatie\SuspiciousLogin\Checks\FailedAttemptsCheck;
@@ -10,7 +11,6 @@ use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
 use Spatie\SuspiciousLogin\Checks\NewIpCheck;
 use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
-use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
 /**
  * Notifies users about suspicious logins, but never blocks them.
@@ -34,11 +34,13 @@ class Balanced extends Preset
         ];
     }
 
-    public function actions(RiskLevel $riskLevel): array
+    public function onMediumRisk(): Action|array
     {
-        return match ($riskLevel) {
-            RiskLevel::Medium, RiskLevel::High => [NotifyUserAction::new()],
-            default => [],
-        };
+        return NotifyUserAction::new();
+    }
+
+    public function onHighRisk(): Action|array
+    {
+        return NotifyUserAction::new();
     }
 }

@@ -31,13 +31,14 @@ class MyPreset extends Preset
         ];
     }
 
-    public function actions(RiskLevel $riskLevel): array
+    public function onMediumRisk(): Action|array
     {
-        return match ($riskLevel) {
-            RiskLevel::Medium => [NotifyUserAction::new()],
-            RiskLevel::High => [NotifyUserAction::new(), BlockLoginAction::new()],
-            default => [],
-        };
+        return NotifyUserAction::new();
+    }
+
+    public function onHighRisk(): Action|array
+    {
+        return [NotifyUserAction::new(), BlockLoginAction::new()];
     }
 }
 ```
