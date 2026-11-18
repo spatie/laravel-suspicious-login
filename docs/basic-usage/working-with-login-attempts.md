@@ -12,7 +12,7 @@ Every login and failed login is stored as a `Spatie\SuspiciousLogin\Models\Login
 | `authenticatable` | The user, as a polymorphic relation. `null` for a failed login on an account that doesn't exist. |
 | `guard` | The auth guard used for the login. |
 | `identifier` | For failed logins: the email address or username that was tried. Passwords are never stored. |
-| `successful` | Whether the login succeeded. |
+| `successful` | Whether authentication succeeded, even if a preset action then blocked the login. Use `trusted()` for successful logins that were not blocked. |
 | `blocked` | Whether the login was [blocked](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/blocking-logins). |
 | `ip_address`, `user_agent` | Taken from the request. |
 | `device_fingerprint` | A hash that identifies the device. See [device fingerprints](/docs/laravel-suspicious-login/v1/advanced-usage/device-fingerprints). |
@@ -66,4 +66,6 @@ The scopes combine with `history()`, which is what the checks themselves use:
 $failedAttemptsToday = $attempt->history()->failed()->since(now()->startOfDay())->count();
 ```
 
-If you want to add your own methods or relations, you can [use your own model](/docs/laravel-suspicious-login/v1/advanced-usage/using-your-own-model).
+History is scoped to the user, not the guard. Logins to different guards share history when they use the same user model and ID.
+
+When you [use your own model](/docs/laravel-suspicious-login/v1/advanced-usage/using-your-own-model), import that model in your application queries instead of the package model.

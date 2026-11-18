@@ -12,6 +12,9 @@ Let's say you like `Balanced`, but you want to block logins from one country and
 ```php
 namespace App\SuspiciousLogin;
 
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
+use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\Check;
 use Spatie\SuspiciousLogin\Checks\CountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewIpCheck;
@@ -33,6 +36,11 @@ class MyPreset extends Balanced
             CountryCheck::new()->block(['KP'])->score(100),
         ];
     }
+
+    public function onHighRisk(): Action|array
+    {
+        return [NotifyUserAction::new(), BlockLoginAction::new()];
+    }
 }
 ```
 
@@ -50,6 +58,8 @@ To start from scratch, extend `Spatie\SuspiciousLogin\Presets\Preset`. It has on
 - `onMediumRisk()` and `onHighRisk()` return what happens to a login at that level: a single action, or an array of actions that run in order. Leave one out and that level takes no action.
 
 The `$mediumRiskThreshold` and `$highRiskThreshold` properties decide where each level starts.
+
+Only the actions for the matching risk level run. A high risk login does not also run `onMediumRisk()`. When extending a shipped preset, omitting an action method keeps the parent's behavior. Override it and return `[]` to disable those actions.
 
 ```php
 namespace App\SuspiciousLogin;
@@ -86,7 +96,7 @@ class AdminPanelPreset extends Preset
     {
         return [
             NotifyUserAction::new(),
-            BlockLoginAction::new()->message('This login was blocked. Ask a colleague to unlock your account.'),
+            BlockLoginAction::new()->message('This login was blocked. Please contact support if this was you.'),
         ];
     }
 }
@@ -101,4 +111,3 @@ Scores are points, not percentages. A few guidelines that work well:
 - The total is capped at 100, so scores above 100 behave the same as 100.
 
 If you want a completely different mapping from score to risk level, override the `riskLevel(int $score): RiskLevel` method of your preset. `RiskLevel` is the `Spatie\SuspiciousLogin\Enums\RiskLevel` enum, with the cases `Low`, `Medium` and `High`.
-

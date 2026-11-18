@@ -16,7 +16,8 @@ use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
 use Spatie\SuspiciousLogin\Checks\UnusualTimeCheck;
 
 /**
- * Runs every check with lower thresholds and blocks high risk logins.
+ * Adds time and IP reputation checks to Balanced, with lower thresholds,
+ * and blocks high risk session logins.
  */
 class Strict extends Preset
 {

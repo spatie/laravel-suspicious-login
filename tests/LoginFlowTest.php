@@ -4,8 +4,10 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\Check;
 use Spatie\SuspiciousLogin\Checks\CheckResult;
+use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
 use Spatie\SuspiciousLogin\Enums\RiskLevel;
 use Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginBlockedEvent;
@@ -198,13 +200,21 @@ it('takes no action with the monitor only preset', function () {
     Notification::assertNothingSent();
 });
 
-it('records nothing when disabled', function () {
+it('disables automatic recording without disabling explicit facade calls', function () {
     config()->set('suspicious-login.enabled', false);
 
     attemptLogin();
     attemptLogin(password: 'wrong');
 
     expect(LoginAttempt::count())->toBe(0);
+
+    $successfulAttempt = SuspiciousLogin::recordSuccessfulLogin($this->user);
+    $failedAttempt = SuspiciousLogin::recordFailedLogin(null, identifier: 'unknown@example.com');
+
+    expect(LoginAttempt::count())->toBe(2)
+        ->and($successfulAttempt->risk_level)->toBe(RiskLevel::Low)
+        ->and($failedAttempt->identifier)->toBe('unknown@example.com')
+        ->and($failedAttempt->risk_level)->toBeNull();
 });
 
 it('does not record a login restored from the remember me cookie', function () {
@@ -254,6 +264,37 @@ it('lets properties passed when recording manually override the callback', funct
         ->getProperty('source')->toBe('api')
         ->getProperty('region.code')->toBe('eu')
         ->getProperty('missing', 'default')->toBe('default');
+});
+
+it('assesses a login without saving it, firing events or running actions', function () {
+    Event::fake([LoginAttemptRecordedEvent::class, SuspiciousLoginDetectedEvent::class]);
+
+    config()->set('suspicious-login.preset', Strict::class);
+
+    $attempt = new LoginAttempt(['user_agent' => 'curl/8.0']);
+
+    $attempt->authenticatable()->associate($this->user);
+
+    expect(SuspiciousLogin::assess($attempt))->toBe($attempt)
+        ->risk_score->toBe(30)
+        ->risk_level->toBe(RiskLevel::Medium)
+        ->reasons->toBe([
+            ['check' => SuspiciousUserAgentCheck::class, 'score' => 30, 'reason' => 'Login from an automated client (curl)'],
+        ])
+        ->and(LoginAttempt::count())->toBe(0);
+
+    Event::assertNothingDispatched();
+    Notification::assertNothingSent();
+});
+
+it('skips notifying a user that no longer exists', function () {
+    $attempt = SuspiciousLogin::recordSuccessfulLogin($this->user);
+
+    $this->user->delete();
+
+    NotifyUserAction::new()->execute($attempt->fresh());
+
+    Notification::assertNothingSent();
 });
 
 class BalancedWithTenantCheck extends Balanced

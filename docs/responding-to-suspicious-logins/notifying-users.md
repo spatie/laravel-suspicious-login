@@ -20,7 +20,7 @@ public function onHighRisk(): Action|array
 }
 ```
 
-The email lists the time, IP address, location and device of the login, together with the reasons it looked suspicious. It's a regular Laravel notification, so your user model needs the `Notifiable` trait. Users without it are skipped.
+The email lists the time, IP address, location and device of the login, together with the reasons it looked suspicious. It's a regular Laravel notification, so your user model needs the `Notifiable` trait. Users without a `notify()` method, and attempts whose user no longer exists, are skipped.
 
 The notification is queued, so make sure a queue worker is running. With the `sync` queue connection, it's sent right away.
 

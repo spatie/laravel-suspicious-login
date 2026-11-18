@@ -7,7 +7,7 @@
 
 A stolen password rarely looks like an attack: to your app, it's a normal login. This package looks at everything around that login (the device, the IP address, where it comes from, how many attempts failed before it) and gives it a risk score. Depending on the score, it can notify the user, block the login, or do whatever you want.
 
-Here's how a login from a new laptop in New York, to an account that always logs in from Antwerp, is scored with the default preset:
+Here's how a login from a new laptop in New York, to an account that always logs in from Antwerp, is scored with the default `Balanced` preset and geolocation configured:
 
 ```
 Login from a new device                  +25
@@ -20,6 +20,16 @@ Risk score                                65  → medium risk, the user gets an 
 Everything that decides how the package behaves lives in a preset: which checks run, how much each weighs, where the risk levels start, and which actions run at each level. The package ships with `Lenient`, `Balanced`, `Strict` and `MonitorOnly` presets, and writing your own takes a few lines:
 
 ```php
+namespace App\SuspiciousLogin;
+
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
+use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
+use Spatie\SuspiciousLogin\Checks\CountryCheck;
+use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
+use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
+use Spatie\SuspiciousLogin\Presets\Preset;
+
 class MyPreset extends Preset
 {
     public function checks(): array
@@ -42,6 +52,14 @@ class MyPreset extends Preset
     }
 }
 ```
+
+Register your preset in `config/suspicious-login.php`:
+
+```php
+'preset' => App\SuspiciousLogin\MyPreset::class,
+```
+
+The default thresholds are 40 for medium risk and 70 for high risk. Only the actions for the matching level run. List `BlockLoginAction` last because it logs the user out of their session guard and throws a validation exception.
 
 An action is a small class with an `execute` method that receives the login attempt. There's no magic behind the ones the package ships with. Here's `BlockLoginAction` in full:
 
@@ -103,7 +121,7 @@ You can install the package via composer:
 composer require spatie/laravel-suspicious-login
 ```
 
-Then publish the config file and the migration, and run the migration:
+Then publish the config file and migration. The install command offers to run the migration:
 
 ```bash
 php artisan suspicious-login:install
@@ -113,9 +131,17 @@ That's it. The package listens for Laravel's `Login` and `Failed` auth events, s
 
 Out of the box the `Balanced` preset is used, and locations are not looked up. To use the location checks, pick a [geolocation driver](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers).
 
+The default notification requires Laravel's `Notifiable` trait on your user model and working mail configuration. It is queued, so run a queue worker unless you use the `sync` queue connection.
+
+For an existing application, consider starting with `Spatie\SuspiciousLogin\Presets\MonitorOnly`. It records scores and fires events without notifying or blocking users, so you can review the results before enabling actions.
+
 ## Documentation
 
 All documentation is available [on our documentation site](https://spatie.be/docs/laravel-suspicious-login).
+
+- [Choose a preset](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) or [customize one](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
+- [Query login attempts](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/working-with-login-attempts) and [add custom properties](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties).
+- [Write checks](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/creating-custom-checks), [write actions](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/writing-your-own-actions), or [listen for events](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/using-events).
 
 ## Testing
 

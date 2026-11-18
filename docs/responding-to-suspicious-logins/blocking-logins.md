@@ -3,7 +3,7 @@ title: Blocking logins
 weight: 2
 ---
 
-Sometimes telling the user afterwards isn't enough. `Spatie\SuspiciousLogin\Actions\BlockLoginAction` stops a suspicious login before the user gets in. The `Strict` preset uses it for high risk logins.
+Sometimes telling the user afterwards isn't enough. `Spatie\SuspiciousLogin\Actions\BlockLoginAction` logs the user back out during the login request and rejects it with a validation error. The `Strict` preset uses it for high risk logins.
 
 ```php
 use Spatie\SuspiciousLogin\Actions\Action;
@@ -31,6 +31,10 @@ When it runs, the action:
 Because the login happens inside `Auth::attempt()`, that exception comes out of your login controller like any other validation error. A regular form redirects back with an error on the `email` field, and a JSON request gets a 422 response. Breeze, Jetstream and Fortify show the error without any changes.
 
 The exception ends the request, so always put `BlockLoginAction` last in the array.
+
+This action requires a session guard with a `logout()` method. It does not revoke API tokens or support stateless guards. For token-based authentication, use a [custom action](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/writing-your-own-actions) and reject the attempt before issuing a token.
+
+The user has already been authenticated when the action runs. It does not undo other login listeners or revoke existing sessions. Throwing an exception from a listener alone is not a replacement for logging the user out.
 
 ## Customizing the error
 

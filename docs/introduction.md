@@ -7,7 +7,7 @@ A stolen password rarely looks like an attack. The attacker types the right emai
 
 This package looks at everything around that login: the device, the IP address, where in the world it comes from, how many attempts failed before it, and what the user usually does. Each suspicious signal adds points to a risk score, and the risk score decides what happens next.
 
-Here's an example. Anna logs in to your app every morning from Antwerp, on the same MacBook. One evening, someone logs in to her account from a Windows laptop in New York. With the default preset, the package scores that login like this:
+Here's an example. Anna logs in to your app every morning from Antwerp, on the same MacBook. One evening, someone logs in to her account from a Windows laptop in New York. With the default `Balanced` preset and a [geolocation driver](/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) configured, the package scores that login like this:
 
 ```
 Login from a new device                  +25

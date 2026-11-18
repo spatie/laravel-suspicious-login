@@ -58,4 +58,4 @@ Event::listen(SuspiciousLoginBlockedEvent::class, NotifyAdminsOfBlockedLogin::cl
 
 The events are fired during the login request. A slow listener makes logging in slow, so let listeners that call external services implement `ShouldQueue`.
 
-A listener that isn't queued can still affect the login. Throwing an exception from a `SuspiciousLoginDetectedEvent` listener stops the login request, just like `BlockLoginAction` does. For that kind of response, a [custom action](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/writing-your-own-actions) is usually clearer.
+A listener that isn't queued can still affect the login. Throwing an exception stops the request, but does not log the user out or mark the attempt as blocked. To reject a session login, use [`BlockLoginAction`](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/blocking-logins). For other authentication flows, write a [custom action](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/writing-your-own-actions) that rejects the login and cleans up any authentication state it created.

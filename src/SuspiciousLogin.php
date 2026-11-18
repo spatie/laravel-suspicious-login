@@ -49,10 +49,15 @@ class SuspiciousLogin
     /**
      * Records and assesses a successful login, then runs the actions
      * of the preset for its risk level.
+     *
+     * @param  array<string, mixed>  $properties
      */
-    /** @param  array<string, mixed>  $properties */
-    public function recordSuccessfulLogin(Authenticatable $user, ?string $guard = null, ?Request $request = null, array $properties = []): LoginAttempt
-    {
+    public function recordSuccessfulLogin(
+        Authenticatable $user,
+        ?string $guard = null,
+        ?Request $request = null,
+        array $properties = [],
+    ): LoginAttempt {
         $request ??= request();
 
         $attempt = $this->newAttempt($request, $user, $guard, successful: true, properties: $properties);
@@ -84,8 +89,13 @@ class SuspiciousLogin
     }
 
     /** @param  array<string, mixed>  $properties */
-    public function recordFailedLogin(?Authenticatable $user, ?string $identifier = null, ?string $guard = null, ?Request $request = null, array $properties = []): LoginAttempt
-    {
+    public function recordFailedLogin(
+        ?Authenticatable $user,
+        ?string $identifier = null,
+        ?string $guard = null,
+        ?Request $request = null,
+        array $properties = [],
+    ): LoginAttempt {
         $attempt = $this->newAttempt($request ?? request(), $user, $guard, successful: false, properties: $properties);
 
         $attempt->identifier = $identifier;
@@ -98,7 +108,8 @@ class SuspiciousLogin
     }
 
     /**
-     * Runs the checks of the preset and stores the risk score, risk level and reasons on the attempt, without saving it.
+     * Fills the attempt's risk score, risk level and reasons without saving it,
+     * dispatching events or running actions. The total score is capped at 100.
      */
     public function assess(LoginAttempt $attempt): LoginAttempt
     {

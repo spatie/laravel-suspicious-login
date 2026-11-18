@@ -28,3 +28,5 @@ CountryCheck::new()->block(['KP'])->score(100),
 Countries are ISO 3166-1 alpha-2 codes, in any case. When you use both, blocked countries are checked first.
 
 The default score is 50.
+
+Despite the method names, this check only adds points. It does not reject a login by itself. To enforce a country policy, give it a score at or above your preset's high risk threshold and return `BlockLoginAction::new()` from `onHighRisk()`. When location is unknown, the check still passes, so this is not a substitute for network access controls.

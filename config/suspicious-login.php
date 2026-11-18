@@ -7,7 +7,8 @@ use Spatie\SuspiciousLogin\Presets\Balanced;
 
 return [
     /*
-     * When disabled, logins will not be recorded or assessed.
+     * When disabled, Laravel's auth events will not record or assess logins.
+     * Explicit calls to the SuspiciousLogin facade still work.
      */
     'enabled' => env('SUSPICIOUS_LOGIN_ENABLED', true),
 

@@ -3,11 +3,15 @@ title: Recording logins manually
 weight: 6
 ---
 
-The package listens for Laravel's `Illuminate\Auth\Events\Login` and `Illuminate\Auth\Events\Failed` events. Every login that goes through `Auth::attempt()`, `Auth::login()` or a starter kit like Breeze or Fortify fires them, so usually you don't need to do anything.
+The package listens for Laravel's `Illuminate\Auth\Events\Login` and `Illuminate\Auth\Events\Failed` events. Laravel's session guard fires `Login` for successful calls to `Auth::attempt()` or `Auth::login()`, and `Failed` when `Auth::attempt()` rejects credentials. Starter kits like Breeze and Fortify use these events, so usually you don't need to do anything.
 
 If your app authenticates users in a way that doesn't fire those events, for example by issuing API tokens in your own controller, you can record the logins yourself:
 
+This example uses the default `Balanced` preset, which notifies but never blocks. Use it after validating the request's email and password fields, and before issuing a token:
+
 ```php
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 
 $user = User::firstWhere('email', $request->email);
@@ -26,6 +30,10 @@ if ($attempt->isSuspicious()) {
 ```
 
 `recordSuccessfulLogin` scores the login and runs the preset's actions, exactly like a login through Laravel's events. Both methods take the current request by default. Pass a `request:` argument to record a login for a different request, and a `properties:` argument to store [custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties) with it.
+
+For token authentication, record and assess the attempt before issuing the token. Use a preset whose actions support your authentication flow. `BlockLoginAction` calls `logout()` on a session guard; it cannot revoke an API token or log out a stateless guard. Write a [custom action](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/writing-your-own-actions) to mark the attempt as blocked and reject token issuance when needed. The `guard:` argument records the guard name; it does not authenticate the user.
+
+Both recording methods work even when `suspicious-login.enabled` is `false`. That setting only disables the automatic auth-event listeners.
 
 Don't record a login manually when Laravel already fires its events for it, or it will be stored twice.
 
@@ -55,7 +63,7 @@ $attempt->authenticatable()->associate($user);
 
 SuspiciousLogin::assess($attempt);
 
-$attempt->risk_score; // 35
+$attempt->risk_score; // the score for the supplied attributes and the user's history
 $attempt->reasons; // the checks that flagged it
 ```
 

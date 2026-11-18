@@ -10,6 +10,10 @@ class NotifyUserAction extends Action
     {
         $user = $attempt->authenticatable;
 
+        if (! $user) {
+            return;
+        }
+
         if (! method_exists($user, 'notify')) {
             return;
         }

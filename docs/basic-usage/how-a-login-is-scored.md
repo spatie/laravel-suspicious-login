@@ -63,4 +63,4 @@ The first login of a user is never flagged for a new device, IP address or count
 
 Laravel also fires its `Login` event when it logs a user back in with a "remember me" cookie. Those aren't new logins, so the package skips them. Otherwise every visit of a remembered user would be scored.
 
-To stop recording logins altogether, for example in a staging environment, set `SUSPICIOUS_LOGIN_ENABLED=false`.
+To disable automatic recording through Laravel's auth events, for example in a staging environment, set `SUSPICIOUS_LOGIN_ENABLED=false`. Explicit calls to `recordSuccessfulLogin()`, `recordFailedLogin()` and `assess()` still work.

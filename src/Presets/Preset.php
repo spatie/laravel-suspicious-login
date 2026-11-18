@@ -9,9 +9,6 @@ use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
 abstract class Preset
 {
-    /*
-     * The risk score of a login is the sum of the scores of the checks that flagged it, capped at 100.
-     */
     protected int $mediumRiskThreshold = 40;
 
     protected int $highRiskThreshold = 70;
@@ -39,7 +36,11 @@ abstract class Preset
         return [];
     }
 
-    /** @return array<int, Action> */
+    /**
+     * Only the actions for the given level run; high risk does not also run medium risk actions.
+     *
+     * @return array<int, Action>
+     */
     public function actions(RiskLevel $riskLevel): array
     {
         return Arr::wrap(match ($riskLevel) {

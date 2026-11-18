@@ -17,6 +17,20 @@ php artisan suspicious-login:install
 
 That's all you need. From now on, every login and failed login is recorded in the `login_attempts` table, and every successful login is scored with the `Balanced` preset.
 
+## Before enabling notifications
+
+The default preset notifies users about medium and high risk logins. Your user model needs Laravel's `Notifiable` trait, mail must be configured, and a queue worker must be running unless you use the `sync` queue connection.
+
+To collect scores without sending notifications, start with `MonitorOnly` in `config/suspicious-login.php`:
+
+```php
+'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnly::class,
+```
+
+This preset still fires events. Review the recorded attempts, then [choose or customize a preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) before turning actions on.
+
+## Publishing files manually
+
 If you prefer to publish things yourself, these are the tags:
 
 ```bash
@@ -54,7 +68,8 @@ This is the content of the published config file:
 ```php
 return [
     /*
-     * When disabled, logins will not be recorded or assessed.
+     * When disabled, Laravel's auth events will not record or assess logins.
+     * Explicit calls to the SuspiciousLogin facade still work.
      */
     'enabled' => env('SUSPICIOUS_LOGIN_ENABLED', true),
 

@@ -63,3 +63,11 @@ use Spatie\SuspiciousLogin\Drivers\IpReputation\IpReputationManager;
 
 app(IpReputationManager::class)->extend('my-driver', fn () => new MyIpReputationDriver);
 ```
+
+Then select the driver:
+
+```bash
+SUSPICIOUS_LOGIN_IP_REPUTATION_DRIVER=my-driver
+```
+
+Its results use the same per-IP cache as the built-in drivers. Add `IpReputationCheck::new()` to your preset if you are not using `Strict`; selecting a driver does not add the check for you.

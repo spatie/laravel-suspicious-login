@@ -9,7 +9,7 @@ A preset decides which checks run, how much each one weighs, where the risk leve
 | --- | --- |
 | `Lenient` | You only want to bother users when several checks agree. It only notifies about high risk logins. |
 | `Balanced` | The default. Notifies users about medium and high risk logins, and never blocks anyone. |
-| `Strict` | Your users have something worth stealing. Runs every check with low thresholds, notifies about medium risk logins and blocks high risk ones. |
+| `Strict` | You want to block high risk session logins. Adds unusual-time and IP-reputation checks to the `Balanced` checks, uses lower thresholds, and notifies at both suspicious levels. |
 | `MonitorOnly` | You're trying the package out. Runs the `Balanced` checks and stores the results, but takes no action. |
 
 You set the preset in `config/suspicious-login.php`:
@@ -20,7 +20,7 @@ You set the preset in `config/suspicious-login.php`:
 
 ## The same login, four presets
 
-Here's how Anna's login from New York, ten hours after her usual morning login in Antwerp, plays out with each preset. She has logged in every morning for a few weeks.
+Here's how Anna's login from New York, ten hours after her usual morning login in Antwerp, plays out with each preset. She has logged in every morning for a few weeks, and a geolocation driver is configured.
 
 | Preset | Flagged by | Score | Risk level | What happens |
 | --- | --- | --- | --- | --- |
@@ -39,7 +39,7 @@ use Spatie\SuspiciousLogin\Models\LoginAttempt;
 LoginAttempt::query()
     ->whereNot('risk_level', 'low')
     ->latest()
-    ->get(['identifier', 'ip_address', 'country_code', 'risk_score', 'reasons']);
+    ->get(['authenticatable_type', 'authenticatable_id', 'ip_address', 'country_code', 'risk_score', 'reasons']);
 ```
 
 If people who travel a lot or use a VPN show up as high risk, lower the weight of those checks before you switch to a preset that notifies or blocks. The next page shows how.
