@@ -43,6 +43,48 @@ class MyPreset extends Preset
 }
 ```
 
+An action is a small class with an `execute` method that receives the login attempt. There's no magic behind the ones the package ships with. Here's `BlockLoginAction` in full:
+
+```php
+class BlockLoginAction extends Action
+{
+    protected string $errorKey = 'email';
+
+    protected string $message = 'We blocked this login because it looked suspicious. Please contact support if this was you.';
+
+    public function errorKey(string $errorKey): static
+    {
+        $this->errorKey = $errorKey;
+
+        return $this;
+    }
+
+    public function message(string $message): static
+    {
+        $this->message = $message;
+
+        return $this;
+    }
+
+    public function execute(LoginAttempt $attempt): void
+    {
+        $attempt->update(['blocked' => true]);
+
+        event(new SuspiciousLoginBlockedEvent($attempt));
+
+        Auth::guard($attempt->guard)->logout();
+
+        throw ValidationException::withMessages([
+            $this->errorKey => __($this->message),
+        ]);
+    }
+}
+```
+
+`new()` comes from the base `Action` class and resolves the action from the container, so actions can inject dependencies in their constructor. The fluent methods configure it in your preset, like `BlockLoginAction::new()->message('...')`. Because the login happens inside `Auth::attempt()`, the validation exception comes out of your login controller like any other validation error.
+
+Writing your own action, for example to ask for a second factor or alert your security team, works the same way: extend `Action` and implement `execute`. Checks are built the same way too: extend `Check` and return `$this->pass()` or `$this->flag($reason)` from `evaluate`.
+
 Checks, actions, geolocation and IP reputation drivers, device fingerprints and the model are all swappable, and the package fires events you can listen for.
 
 ## Support us
