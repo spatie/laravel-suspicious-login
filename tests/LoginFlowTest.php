@@ -1,13 +1,19 @@
 <?php
 
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Spatie\SuspiciousLogin\Checks\Check;
+use Spatie\SuspiciousLogin\Checks\CheckResult;
 use Spatie\SuspiciousLogin\Enums\RiskLevel;
 use Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginBlockedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent;
+use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification;
+use Spatie\SuspiciousLogin\Presets\Balanced;
 use Spatie\SuspiciousLogin\Presets\MonitorOnly;
 use Spatie\SuspiciousLogin\Presets\Strict;
 
@@ -26,7 +32,8 @@ it('records a successful login', function () {
         ->and($attempt->authenticatable->is($this->user))->toBeTrue()
         ->and($attempt->ip_address)->toBe('81.82.83.84')
         ->and($attempt->user_agent)->toBe(CHROME_ON_MAC)
-        ->and($attempt->risk_level)->toBe(RiskLevel::Low);
+        ->and($attempt->risk_level)->toBe(RiskLevel::Low)
+        ->and($attempt->properties)->toBeNull();
 });
 
 it('records a failed login with the identifier but not the password', function () {
@@ -217,3 +224,54 @@ it('does not record a login restored from the remember me cookie', function () {
 
     expect(LoginAttempt::count())->toBe(1);
 });
+
+it('adds custom properties to every attempt before the checks run', function () {
+    config()->set('suspicious-login.preset', BalancedWithTenantCheck::class);
+
+    SuspiciousLogin::addPropertiesUsing(fn (Request $request, ?Authenticatable $user) => [
+        'tenant' => $request->header('X-Tenant'),
+        'user_id' => $user?->getAuthIdentifier(),
+    ]);
+
+    attemptLogin(email: 'nobody@example.com', headers: ['X-Tenant' => 'acme']);
+
+    expect(latestAttempt()->properties)->toBe(['tenant' => 'acme', 'user_id' => null]);
+
+    attemptLogin(headers: ['X-Tenant' => 'acme']);
+
+    expect(latestAttempt())
+        ->properties->toBe(['tenant' => 'acme', 'user_id' => $this->user->id])
+        ->and(collect(latestAttempt()->reasons)->pluck('reason')->all())->toBe(['Login to tenant acme']);
+});
+
+it('lets properties passed when recording manually override the callback', function () {
+    SuspiciousLogin::addPropertiesUsing(fn () => ['tenant' => 'acme', 'region' => ['code' => 'eu']]);
+
+    $attempt = SuspiciousLogin::recordSuccessfulLogin($this->user, properties: ['tenant' => 'other', 'source' => 'api']);
+
+    expect($attempt->fresh())
+        ->getProperty('tenant')->toBe('other')
+        ->getProperty('source')->toBe('api')
+        ->getProperty('region.code')->toBe('eu')
+        ->getProperty('missing', 'default')->toBe('default');
+});
+
+class BalancedWithTenantCheck extends Balanced
+{
+    public function checks(): array
+    {
+        return [new TenantCheck];
+    }
+}
+
+class TenantCheck extends Check
+{
+    public function evaluate(LoginAttempt $attempt): CheckResult
+    {
+        if (! $attempt->getProperty('tenant')) {
+            return $this->pass();
+        }
+
+        return $this->flag("Login to tenant {$attempt->getProperty('tenant')}");
+    }
+}

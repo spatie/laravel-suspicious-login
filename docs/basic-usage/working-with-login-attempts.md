@@ -19,6 +19,7 @@ Every login and failed login is stored as a `Spatie\SuspiciousLogin\Models\Login
 | `country_code`, `city`, `latitude`, `longitude` | The location, when a [geolocation driver](/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) found one. |
 | `risk_score`, `risk_level` | The score from 0 to 100 and the `RiskLevel` enum. `null` for failed logins. |
 | `reasons` | An array with the check, score and human readable reason for every check that flagged the login. |
+| `properties` | Your [custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties), or `null` when there are none. |
 
 ## Showing users their recent logins
 
@@ -50,6 +51,7 @@ $recentLogins = LoginAttempt::query()
 ```php
 $attempt->isSuspicious(); // true for medium and high risk logins
 $attempt->location(); // a Location object, or null
+$attempt->getProperty('tenant_id'); // a custom property, or null
 
 $attempt->history(); // a query for the other attempts of the same user, up to this one
 

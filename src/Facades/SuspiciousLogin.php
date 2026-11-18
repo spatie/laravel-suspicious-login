@@ -2,6 +2,7 @@
 
 namespace Spatie\SuspiciousLogin\Facades;
 
+use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Facade;
@@ -12,9 +13,10 @@ use Spatie\SuspiciousLogin\Presets\Preset;
 use Spatie\SuspiciousLogin\SuspiciousLogin as SuspiciousLoginService;
 
 /**
+ * @method static void addPropertiesUsing(Closure $callback)
  * @method static Preset preset()
- * @method static LoginAttempt recordSuccessfulLogin(Authenticatable $user, ?string $guard = null, ?Request $request = null)
- * @method static LoginAttempt recordFailedLogin(?Authenticatable $user, ?string $identifier = null, ?string $guard = null, ?Request $request = null)
+ * @method static LoginAttempt recordSuccessfulLogin(Authenticatable $user, ?string $guard = null, ?Request $request = null, array $properties = [])
+ * @method static LoginAttempt recordFailedLogin(?Authenticatable $user, ?string $identifier = null, ?string $guard = null, ?Request $request = null, array $properties = [])
  * @method static LoginAttempt assess(LoginAttempt $attempt)
  * @method static ?Location locate(string $ip)
  * @method static IpReputation ipReputation(string $ip)

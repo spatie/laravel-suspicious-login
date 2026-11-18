@@ -27,6 +27,7 @@ use Spatie\SuspiciousLogin\Enums\RiskLevel;
  * @property ?int $risk_score
  * @property ?RiskLevel $risk_level
  * @property ?array<int, array{check: string, score: int, reason: string}> $reasons
+ * @property ?array<string, mixed> $properties
  * @property CarbonInterface $created_at
  */
 class LoginAttempt extends Model
@@ -47,12 +48,18 @@ class LoginAttempt extends Model
             'risk_score' => 'integer',
             'risk_level' => RiskLevel::class,
             'reasons' => 'array',
+            'properties' => 'array',
         ];
     }
 
     public function authenticatable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function getProperty(string $name, mixed $default = null): mixed
+    {
+        return data_get($this->properties, $name, $default);
     }
 
     public function location(): ?Location

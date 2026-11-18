@@ -2,6 +2,7 @@
 
 namespace Spatie\SuspiciousLogin;
 
+use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -20,11 +21,25 @@ use Spatie\SuspiciousLogin\Presets\Preset;
 
 class SuspiciousLogin
 {
+    /** @var ?Closure(Request, ?Authenticatable): array<string, mixed> */
+    protected ?Closure $propertiesResolver = null;
+
     public function __construct(
         protected GeolocationManager $geolocation,
         protected IpReputationManager $ipReputation,
         protected DeviceFingerprinter $deviceFingerprinter,
     ) {}
+
+    /**
+     * Adds the properties the callback returns to every recorded login attempt,
+     * before the checks run.
+     *
+     * @param  Closure(Request, ?Authenticatable): array<string, mixed>  $callback
+     */
+    public function addPropertiesUsing(Closure $callback): void
+    {
+        $this->propertiesResolver = $callback;
+    }
 
     public function preset(): Preset
     {
@@ -35,11 +50,12 @@ class SuspiciousLogin
      * Records and assesses a successful login, then runs the actions
      * of the preset for its risk level.
      */
-    public function recordSuccessfulLogin(Authenticatable $user, ?string $guard = null, ?Request $request = null): LoginAttempt
+    /** @param  array<string, mixed>  $properties */
+    public function recordSuccessfulLogin(Authenticatable $user, ?string $guard = null, ?Request $request = null, array $properties = []): LoginAttempt
     {
         $request ??= request();
 
-        $attempt = $this->newAttempt($request, $user, $guard, successful: true);
+        $attempt = $this->newAttempt($request, $user, $guard, successful: true, properties: $properties);
 
         if ($location = $this->locate((string) $request->ip())) {
             $attempt->fill([
@@ -67,9 +83,10 @@ class SuspiciousLogin
         return $attempt;
     }
 
-    public function recordFailedLogin(?Authenticatable $user, ?string $identifier = null, ?string $guard = null, ?Request $request = null): LoginAttempt
+    /** @param  array<string, mixed>  $properties */
+    public function recordFailedLogin(?Authenticatable $user, ?string $identifier = null, ?string $guard = null, ?Request $request = null, array $properties = []): LoginAttempt
     {
-        $attempt = $this->newAttempt($request ?? request(), $user, $guard, successful: false);
+        $attempt = $this->newAttempt($request ?? request(), $user, $guard, successful: false, properties: $properties);
 
         $attempt->identifier = $identifier;
 
@@ -133,9 +150,15 @@ class SuspiciousLogin
         );
     }
 
-    protected function newAttempt(Request $request, ?Authenticatable $user, ?string $guard, bool $successful): LoginAttempt
+    /** @param  array<string, mixed>  $properties */
+    protected function newAttempt(Request $request, ?Authenticatable $user, ?string $guard, bool $successful, array $properties): LoginAttempt
     {
         $modelClass = config('suspicious-login.model');
+
+        $properties = [
+            ...($this->propertiesResolver ? ($this->propertiesResolver)($request, $user) : []),
+            ...$properties,
+        ];
 
         /** @var LoginAttempt $attempt */
         $attempt = new $modelClass([
@@ -145,6 +168,7 @@ class SuspiciousLogin
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'device_fingerprint' => $this->deviceFingerprinter->fingerprint($request),
+            'properties' => $properties ?: null,
             'created_at' => now(),
         ]);
 

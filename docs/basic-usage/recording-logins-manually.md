@@ -1,6 +1,6 @@
 ---
 title: Recording logins manually
-weight: 5
+weight: 6
 ---
 
 The package listens for Laravel's `Illuminate\Auth\Events\Login` and `Illuminate\Auth\Events\Failed` events. Every login that goes through `Auth::attempt()`, `Auth::login()` or a starter kit like Breeze or Fortify fires them, so usually you don't need to do anything.
@@ -25,7 +25,7 @@ if ($attempt->isSuspicious()) {
 }
 ```
 
-`recordSuccessfulLogin` scores the login and runs the preset's actions, exactly like a login through Laravel's events. Both methods take the current request by default. Pass a `request:` argument to record a login for a different request.
+`recordSuccessfulLogin` scores the login and runs the preset's actions, exactly like a login through Laravel's events. Both methods take the current request by default. Pass a `request:` argument to record a login for a different request, and a `properties:` argument to store [custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties) with it.
 
 Don't record a login manually when Laravel already fires its events for it, or it will be stored twice.
 

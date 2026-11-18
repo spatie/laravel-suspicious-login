@@ -90,6 +90,8 @@ class DormantAccountCheck extends Check
 DormantAccountCheck::new()->inactiveForDays(180)->score(25),
 ```
 
+A check can also read [custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties) you add to every login, with `$attempt->getProperty()`.
+
 Use `trusted()` when you compare with what the user normally does. It only returns successful logins that weren't blocked, so an attacker can't shape the history by failing to log in.
 
 ## Injecting dependencies
