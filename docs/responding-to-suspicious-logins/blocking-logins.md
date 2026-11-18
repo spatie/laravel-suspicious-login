@@ -46,6 +46,43 @@ BlockLoginAction::new()
 
 The message is passed through Laravel's `__()` helper, so you can translate it.
 
+## Customizing the response
+
+To change how a blocked login responds, extend `BlockLoginAction` and override its protected `respond` method:
+
+```php
+namespace App\SuspiciousLogin\Actions;
+
+use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+
+class BlockLoginWithForbiddenResponseAction extends BlockLoginAction
+{
+    protected function respond(LoginAttempt $attempt): never
+    {
+        abort(403, 'This login requires verification.');
+    }
+}
+```
+
+Use your action in the preset instead of `BlockLoginAction`:
+
+```php
+use App\SuspiciousLogin\Actions\BlockLoginWithForbiddenResponseAction;
+use Spatie\SuspiciousLogin\Actions\Action;
+
+public function onHighRisk(): Action|array
+{
+    return BlockLoginWithForbiddenResponseAction::new();
+}
+```
+
+The attempt is already marked as blocked, the blocked event has been fired, and the user has been logged out when `respond` runs. The method receives the attempt so you can use its ID, risk level or reasons in your response.
+
+The return type is `never`: your method must throw an exception or call `abort()`, not return a response. Actions run inside the login event listener, so returning a response would not send it to the browser. For example, use `abort(redirect('/login-verification'))` for a redirect, or `abort(response()->json(['message' => 'Login blocked.'], 403))` for JSON. Any verification flow is up to your app; the user has already been logged out.
+
+The `errorKey()` and `message()` options configure the default validation response. An override must use them explicitly if it needs them.
+
 ## Letting a user in again
 
 A blocked login never makes its device, IP address or country known. So when the real user tries again from the same laptop, the login is likely to be blocked again.

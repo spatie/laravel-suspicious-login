@@ -9,9 +9,9 @@ use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
 abstract class Preset
 {
-    protected int $mediumRiskThreshold = 40;
+    protected int $mediumRiskThreshold;
 
-    protected int $highRiskThreshold = 70;
+    protected int $highRiskThreshold;
 
     /** @return array<int, Check> */
     abstract public function checks(): array;
@@ -52,11 +52,11 @@ abstract class Preset
 
     public function riskLevel(int $score): RiskLevel
     {
-        if ($score >= $this->highRiskThreshold) {
+        if ($score >= ($this->highRiskThreshold ?? config('suspicious-login.risk_thresholds.high'))) {
             return RiskLevel::High;
         }
 
-        if ($score >= $this->mediumRiskThreshold) {
+        if ($score >= ($this->mediumRiskThreshold ?? config('suspicious-login.risk_thresholds.medium'))) {
             return RiskLevel::Medium;
         }
 

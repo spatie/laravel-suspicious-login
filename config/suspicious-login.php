@@ -10,7 +10,7 @@ return [
      * When disabled, Laravel's auth events will not record or assess logins.
      * Explicit calls to the SuspiciousLogin facade still work.
      */
-    'enabled' => env('SUSPICIOUS_LOGIN_ENABLED', true),
+    'enabled' => true,
 
     /*
      * The preset decides which checks run, how their scores map to a risk
@@ -20,14 +20,26 @@ return [
      */
     'preset' => Balanced::class,
 
+    /*
+     * The scores at which medium and high risk start. Presets can override
+     * either threshold with their own $mediumRiskThreshold or $highRiskThreshold.
+     */
+    'risk_thresholds' => [
+        'medium' => 40,
+        'high' => 70,
+    ],
+
     'geolocation' => [
         /*
          * The driver used to find the location of an IP address. Several checks,
          * such as NewCountryCheck and ImpossibleTravelCheck, need a location.
          *
-         * Supported: "null", "cloudflare", "ipinfo", "maxmind"
+         * By default, public IP addresses are sent to ipinfo.io without an API token.
+         * Use "null" to disable lookups.
+         *
+         * Supported: "ipinfo", "cloudflare", "maxmind", "null"
          */
-        'driver' => env('SUSPICIOUS_LOGIN_GEOLOCATION_DRIVER', 'null'),
+        'driver' => 'ipinfo',
 
         /*
          * How long the location of an IP address is cached, in seconds.
@@ -43,7 +55,7 @@ return [
              * The path to a GeoLite2 City or GeoIP2 City database.
              * Requires `composer require geoip2/geoip2`.
              */
-            'database_path' => env('MAXMIND_DATABASE_PATH', storage_path('app/geoip/GeoLite2-City.mmdb')),
+            'database_path' => storage_path('app/geoip/GeoLite2-City.mmdb'),
         ],
     ],
 
@@ -54,7 +66,7 @@ return [
          *
          * Supported: "null", "tor", "abuseipdb"
          */
-        'driver' => env('SUSPICIOUS_LOGIN_IP_REPUTATION_DRIVER', 'null'),
+        'driver' => 'null',
 
         /*
          * How long the reputation of an IP address is cached, in seconds.

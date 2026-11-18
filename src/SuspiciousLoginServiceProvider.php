@@ -21,6 +21,7 @@ class SuspiciousLoginServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-suspicious-login')
             ->hasConfigFile()
+            ->hasViews()
             ->hasMigration('create_login_attempts_table')
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command

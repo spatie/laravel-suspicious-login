@@ -61,3 +61,5 @@ If people who travel a lot or use a VPN show up as high risk, lower the weight o
 | High risk from | 80 | 70 | 60 |
 | On medium risk | nothing | notify | notify |
 | On high risk | notify | notify | notify and block |
+
+The table uses the default config. `Balanced` and `MonitorOnly` read their risk thresholds from `risk_thresholds` in `config/suspicious-login.php`. `Lenient` and `Strict` define their own thresholds, which take precedence over the config.

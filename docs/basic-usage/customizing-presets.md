@@ -5,6 +5,21 @@ weight: 3
 
 A preset is a plain PHP class. To change how the package behaves, you extend one of the shipped presets or write your own, and point the config file at it.
 
+## Configuring risk thresholds
+
+The default thresholds live in `config/suspicious-login.php`:
+
+```php
+'risk_thresholds' => [
+    'medium' => 40,
+    'high' => 70,
+],
+```
+
+`Balanced`, `MonitorOnly` and custom presets use these values unless they define their own thresholds. `Strict` overrides them with 30 and 60; `Lenient` uses 50 and 80.
+
+To override either threshold in a preset, define `$mediumRiskThreshold` or `$highRiskThreshold`. A property takes precedence over the config value. Leave a property out to inherit the parent's threshold, or the config value when the parent doesn't define one.
+
 ## Tweaking a shipped preset
 
 Let's say you like `Balanced`, but you want to block logins from one country and you consider a new IP address meaningless because your users are mostly on mobile networks. Extend the preset and override what you need:
@@ -57,7 +72,7 @@ To start from scratch, extend `Spatie\SuspiciousLogin\Presets\Preset`. It has on
 - `checks()` returns the checks to run, each configured with its score and options.
 - `onMediumRisk()` and `onHighRisk()` return what happens to a login at that level: a single action, or an array of actions that run in order. Leave one out and that level takes no action.
 
-The `$mediumRiskThreshold` and `$highRiskThreshold` properties decide where each level starts.
+The `$mediumRiskThreshold` and `$highRiskThreshold` properties are optional. The example below overrides both; omit them to use the configured defaults.
 
 Only the actions for the matching risk level run. A high risk login does not also run `onMediumRisk()`. When extending a shipped preset, omitting an action method keeps the parent's behavior. Override it and return `[]` to disable those actions.
 

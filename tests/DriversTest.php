@@ -8,6 +8,27 @@ use Spatie\SuspiciousLogin\Drivers\Geolocation\Location;
 use Spatie\SuspiciousLogin\Exceptions\InvalidDriverConfig;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 
+it('looks up login locations with the default driver without a token', function () {
+    config()->set('suspicious-login', require __DIR__.'/../config/suspicious-login.php');
+    config()->set('suspicious-login.geolocation.ipinfo.token', null);
+
+    Http::fake(['ipinfo.io/*' => Http::response([
+        'country' => 'BE',
+        'city' => 'Antwerp',
+        'loc' => '51.2194,4.4025',
+    ])]);
+
+    createUser();
+
+    attemptLogin()->assertOk();
+
+    expect(latestAttempt())
+        ->country_code->toBe('BE')
+        ->city->toBe('Antwerp')
+        ->latitude->toBe(51.2194)
+        ->longitude->toBe(4.4025);
+});
+
 it('reads the location from cloudflare headers', function () {
     config()->set('suspicious-login.geolocation.driver', 'cloudflare');
 

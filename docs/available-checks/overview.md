@@ -12,6 +12,7 @@ These are the checks that ship with the package:
 | [New device](new-device) | the device was never used in one of the user's logins | 25 |
 | [New IP address](new-ip) | the IP address was never used in one of the user's logins | 10 |
 | [New country](new-country) | the user never logged in from this country | 30 |
+| [Multiple countries](multiple-countries) | the user also logged in from another country within the last hour | 40 |
 | [Impossible travel](impossible-travel) | the user would have had to travel faster than a plane since the previous login | 60 |
 | [Allowed and blocked countries](country) | the country is blocked, or isn't on your allow list | 50 |
 | [Failed attempts](failed-attempts) | the account had many failed logins recently | 30 |

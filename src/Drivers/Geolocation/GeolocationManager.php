@@ -9,7 +9,7 @@ class GeolocationManager extends Manager
 {
     public function getDefaultDriver(): string
     {
-        return $this->config->get('suspicious-login.geolocation.driver', 'null');
+        return $this->config->get('suspicious-login.geolocation.driver', 'ipinfo');
     }
 
     public function createNullDriver(): NullDriver

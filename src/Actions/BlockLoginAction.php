@@ -39,6 +39,11 @@ class BlockLoginAction extends Action
 
         Auth::guard($attempt->guard)->logout();
 
+        $this->respond($attempt);
+    }
+
+    protected function respond(LoginAttempt $attempt): never
+    {
         throw ValidationException::withMessages([
             $this->errorKey => __($this->message),
         ]);

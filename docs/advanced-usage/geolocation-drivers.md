@@ -3,20 +3,23 @@ title: Geolocation drivers
 weight: 2
 ---
 
-Three checks need to know where a login comes from: [new country](/docs/laravel-suspicious-login/v1/available-checks/new-country), [impossible travel](/docs/laravel-suspicious-login/v1/available-checks/impossible-travel) and [allowed and blocked countries](/docs/laravel-suspicious-login/v1/available-checks/country). A geolocation driver turns an IP address into a country, and if it can, a city and coordinates.
+Four checks need to know where a login comes from: [new country](/docs/laravel-suspicious-login/v1/available-checks/new-country), [multiple countries](/docs/laravel-suspicious-login/v1/available-checks/multiple-countries), [impossible travel](/docs/laravel-suspicious-login/v1/available-checks/impossible-travel) and [allowed and blocked countries](/docs/laravel-suspicious-login/v1/available-checks/country). A geolocation driver turns an IP address into a country, and if it can, a city and coordinates.
 
-You pick the driver with an environment variable:
+The default `ipinfo` driver works without an API token. It sends public IP addresses to ipinfo.io, subject to its request limits. Choose the driver in `config/suspicious-login.php`:
 
-```bash
-SUSPICIOUS_LOGIN_GEOLOCATION_DRIVER=ipinfo
+```php
+'geolocation' => [
+    'driver' => 'ipinfo',
+    // ...
+],
 ```
 
 | Driver | Country | Coordinates | Needs |
 | --- | --- | --- | --- |
-| `null` | no | no | nothing, this is the default |
+| `ipinfo` (default) | yes | yes | optionally an ipinfo.io token |
 | `cloudflare` | yes | with visitor location headers | your app behind Cloudflare |
-| `ipinfo` | yes | yes | optionally an ipinfo.io token |
 | `maxmind` | yes | yes | `geoip2/geoip2` and a database file |
+| `null` | no | no | nothing; disables location lookups |
 
 Locations are cached per IP address for a week. You can change that with the `geolocation.cache_ttl` config option. Private and reserved IP addresses, such as `127.0.0.1` in local development, are never looked up.
 
@@ -32,11 +35,19 @@ Make sure Laravel [trusts Cloudflare as a proxy](https://laravel.com/docs/reques
 
 ## ipinfo
 
-The `ipinfo` driver calls the [ipinfo.io](https://ipinfo.io) API. It works without an account, up to ipinfo's free limit. For more requests, create a token and set it:
+The `ipinfo` driver calls the [ipinfo.io](https://ipinfo.io) API. It works without an account, up to ipinfo's free limit. For more requests, create a token and configure it in `config/suspicious-login.php`:
 
-```bash
-IPINFO_TOKEN=your-token
+```php
+'geolocation' => [
+    'driver' => 'ipinfo',
+    'ipinfo' => [
+        'token' => env('IPINFO_TOKEN'),
+    ],
+    // ...
+],
 ```
+
+Keep the token in your deployment's secrets or `.env` file rather than committing it to source control.
 
 Requests time out after two seconds, so a slow API never holds up a login for long.
 
@@ -50,10 +61,16 @@ Install MaxMind's reader:
 composer require geoip2/geoip2
 ```
 
-Then [download a GeoLite2 City database](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) with a free MaxMind account. By default, the driver looks for it in `storage/app/geoip/GeoLite2-City.mmdb`. To use another path:
+Then [download a GeoLite2 City database](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) with a free MaxMind account. By default, the driver looks for it in `storage/app/geoip/GeoLite2-City.mmdb`. Select the driver and, if needed, change the database path in `config/suspicious-login.php`:
 
-```bash
-MAXMIND_DATABASE_PATH=/path/to/GeoLite2-City.mmdb
+```php
+'geolocation' => [
+    'driver' => 'maxmind',
+    'maxmind' => [
+        'database_path' => storage_path('app/geoip/GeoLite2-City.mmdb'),
+    ],
+    // ...
+],
 ```
 
 MaxMind updates its databases every week. Their `geoipupdate` tool keeps your copy current.
@@ -97,10 +114,13 @@ use Spatie\SuspiciousLogin\Drivers\Geolocation\GeolocationManager;
 app(GeolocationManager::class)->extend('my-driver', fn () => new MyGeolocationDriver);
 ```
 
-And use it:
+Then select it in `config/suspicious-login.php`:
 
-```bash
-SUSPICIOUS_LOGIN_GEOLOCATION_DRIVER=my-driver
+```php
+'geolocation' => [
+    'driver' => 'my-driver',
+    // ...
+],
 ```
 
 Results of your driver are cached like those of the built-in ones.

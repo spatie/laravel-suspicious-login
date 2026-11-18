@@ -17,10 +17,6 @@ use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
  */
 class Balanced extends Preset
 {
-    protected int $mediumRiskThreshold = 40;
-
-    protected int $highRiskThreshold = 70;
-
     public function checks(): array
     {
         return [

@@ -6,6 +6,7 @@ use Spatie\SuspiciousLogin\Checks\CredentialStuffingCheck;
 use Spatie\SuspiciousLogin\Checks\FailedAttemptsCheck;
 use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
 use Spatie\SuspiciousLogin\Checks\IpReputationCheck;
+use Spatie\SuspiciousLogin\Checks\MultipleCountriesCheck;
 use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
 use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
 use Spatie\SuspiciousLogin\Checks\UnusualTimeCheck;
@@ -99,6 +100,63 @@ it('only compares countries with earlier logins that have a country', function (
 
     expect(NewCountryCheck::new()->evaluate(newAttempt($this->user, ['country_code' => 'BE']))->suspicious)->toBeFalse()
         ->and(NewCountryCheck::new()->evaluate(newAttempt($this->user, ['country_code' => 'US']))->suspicious)->toBeTrue();
+});
+
+it('flags multiple countries within the configured time window', function (int $secondsAgo, ?int $minutes, bool $expectedSuspicious) {
+    $time = now()->subDay();
+
+    storeAttempt($this->user, ['country_code' => 'BE', 'created_at' => $time->copy()->subDays(2)]);
+    storeAttempt($this->user, ['country_code' => 'NL', 'created_at' => $time->copy()->subSeconds($secondsAgo)]);
+
+    $attempt = storeAttempt($this->user, ['country_code' => 'BE', 'created_at' => $time]);
+    $check = MultipleCountriesCheck::new();
+
+    if ($minutes !== null) {
+        $check->withinMinutes($minutes);
+    }
+
+    $result = $check->evaluate($attempt);
+
+    expect($result->suspicious)->toBe($expectedSuspicious)
+        ->and($result->score)->toBe($expectedSuspicious ? 40 : 0)
+        ->and($result->reason)->toBe($expectedSuspicious
+            ? 'Logins from multiple countries in the last '.($minutes ?? 60).' minutes'
+            : null)
+        ->and(NewCountryCheck::new()->evaluate($attempt)->suspicious)->toBeFalse();
+})->with([
+    'within the default hour' => [1800, null, true],
+    'exactly one hour ago' => [3600, null, true],
+    'just outside the default hour' => [3601, null, false],
+    'inside a shorter window' => [600, 15, true],
+    'outside a shorter window' => [901, 15, false],
+    'inside a longer window' => [5400, 120, true],
+]);
+
+it('only compares known countries in earlier successful unblocked logins of the same user', function () {
+    $otherUser = createUser('other@example.com');
+
+    storeAttempt($otherUser, ['country_code' => 'US']);
+    storeAttempt($this->user, ['country_code' => 'US', 'successful' => false]);
+    storeAttempt($this->user, ['country_code' => 'US', 'blocked' => true]);
+    storeAttempt($this->user, ['country_code' => 'US', 'created_at' => now()->addMinute()]);
+    storeAttempt($this->user, ['country_code' => null]);
+    storeAttempt($this->user, ['country_code' => 'BE']);
+
+    $attempt = newAttempt($this->user, ['country_code' => 'BE']);
+
+    expect(MultipleCountriesCheck::new()->evaluate($attempt)->suspicious)->toBeFalse();
+
+    storeAttempt($this->user, ['country_code' => 'NL']);
+
+    $result = MultipleCountriesCheck::new()->score(55)->evaluate($attempt);
+
+    expect($result->suspicious)->toBeTrue()
+        ->and($result->score)->toBe(55)
+        ->and(MultipleCountriesCheck::new()->evaluate(newAttempt($this->user))->suspicious)->toBeFalse();
+});
+
+it('does not flag multiple countries without earlier logins', function () {
+    expect(MultipleCountriesCheck::new()->evaluate(newAttempt($this->user, ['country_code' => 'BE']))->suspicious)->toBeFalse();
 });
 
 it('can allow or block countries', function () {

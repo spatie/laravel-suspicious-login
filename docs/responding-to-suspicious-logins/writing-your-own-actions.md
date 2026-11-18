@@ -44,6 +44,65 @@ public function onHighRisk(): Action|array
 
 Actions are resolved from the container by `new()`, so you can inject dependencies in the constructor. Add your own fluent methods to configure them, the way `BlockLoginAction` has `message()`.
 
+## Sending a webhook
+
+To send suspicious logins to an external service, create an action that queues a webhook. Queue the delivery so a slow or unavailable endpoint does not hold up the login or prevent later actions from running:
+
+```php
+namespace App\SuspiciousLogin\Actions;
+
+use Illuminate\Support\Facades\Http;
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+
+class SendWebhookAction extends Action
+{
+    public function execute(LoginAttempt $attempt): void
+    {
+        $payload = [
+            'event' => 'suspicious_login',
+            'login_attempt_id' => $attempt->getKey(),
+            'risk_score' => $attempt->risk_score,
+            'risk_level' => $attempt->risk_level->value,
+            'reasons' => $attempt->reasons,
+        ];
+
+        dispatch(function () use ($payload): void {
+            Http::timeout(5)
+                ->withToken(config('services.security_webhook.token'))
+                ->post(config('services.security_webhook.url'), $payload)
+                ->throw();
+        })->afterCommit();
+    }
+}
+```
+
+Configure an HTTPS endpoint and its bearer token in `config/services.php`:
+
+```php
+'security_webhook' => [
+    'url' => env('SECURITY_WEBHOOK_URL'),
+    'token' => env('SECURITY_WEBHOOK_TOKEN'),
+],
+```
+
+Then add your action to the preset:
+
+```php
+use App\SuspiciousLogin\Actions\SendWebhookAction;
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
+
+public function onHighRisk(): Action|array
+{
+    return [SendWebhookAction::new(), BlockLoginAction::new()];
+}
+```
+
+Use an asynchronous queue connection, such as `database` or `redis`, and run a queue worker. With `sync`, the HTTP request runs during the login instead. The HTTP client throws on unsuccessful responses so the queue worker can handle failed deliveries. Configure worker retries for your needs, and let the receiver use `login_attempt_id` to deduplicate deliveries.
+
+The payload captures the assessment before the remaining actions run; it does not confirm whether the login was subsequently blocked. Only send data the receiving service needs. Reasons from custom checks may contain personal data.
+
 ## Asking for a second factor
 
 Actions run during the login request, after Laravel has logged the user in. That means an action can still change what happens next. Here's an action that flags the session, so a middleware in your app can send the user to a verification page before they continue:

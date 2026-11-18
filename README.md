@@ -17,7 +17,7 @@ Login from a new country (US)            +30
 Risk score                                65  → medium risk, the user gets an email
 ```
 
-Everything that decides how the package behaves lives in a preset: which checks run, how much each weighs, where the risk levels start, and which actions run at each level. The package ships with `Lenient`, `Balanced`, `Strict` and `MonitorOnly` presets, and writing your own takes a few lines:
+A preset lists the checks to run, how much each weighs, and which actions run at each risk level. It can also override the default risk thresholds from the config file. The package ships with `Lenient`, `Balanced`, `Strict` and `MonitorOnly` presets, and writing your own takes a few lines:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -59,7 +59,18 @@ Register your preset in `config/suspicious-login.php`:
 'preset' => App\SuspiciousLogin\MyPreset::class,
 ```
 
-The default thresholds are 40 for medium risk and 70 for high risk. Only the actions for the matching level run. List `BlockLoginAction` last because it logs the user out of their session guard and throws a validation exception.
+The default risk thresholds live in `config/suspicious-login.php`:
+
+```php
+'risk_thresholds' => [
+    'medium' => 40,
+    'high' => 70,
+],
+```
+
+Optionally define `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold` in your preset to override either config value. `Balanced` and `MonitorOnly` use the configured defaults; `Strict` defines 30/60 and `Lenient` defines 50/80.
+
+Only the actions for the matching level run. List `BlockLoginAction` last because it logs the user out of their session guard and throws a validation exception.
 
 An action is a small class with an `execute` method that receives the login attempt. There's no magic behind the ones the package ships with. Here's `BlockLoginAction` in full:
 
@@ -92,6 +103,11 @@ class BlockLoginAction extends Action
 
         Auth::guard($attempt->guard)->logout();
 
+        $this->respond($attempt);
+    }
+
+    protected function respond(LoginAttempt $attempt): never
+    {
         throw ValidationException::withMessages([
             $this->errorKey => __($this->message),
         ]);
@@ -101,7 +117,11 @@ class BlockLoginAction extends Action
 
 `new()` comes from the base `Action` class and resolves the action from the container, so actions can inject dependencies in their constructor. The fluent methods configure it in your preset, like `BlockLoginAction::new()->message('...')`. Because the login happens inside `Auth::attempt()`, the validation exception comes out of your login controller like any other validation error.
 
+To change the response without replacing the blocking and logout behavior, extend `BlockLoginAction` and override `protected function respond(LoginAttempt $attempt): never`. See [customizing the response](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/blocking-logins#customizing-the-response).
+
 Writing your own action, for example to ask for a second factor or alert your security team, works the same way: extend `Action` and implement `execute`. Checks are built the same way too: extend `Check` and return `$this->pass()` or `$this->flag($reason)` from `evaluate`.
+
+You can also add [`MultipleCountriesCheck`](https://spatie.be/docs/laravel-suspicious-login/v1/available-checks/multiple-countries) to your preset to flag logins from different countries within one hour, even when both countries are already known.
 
 Checks, actions, geolocation and IP reputation drivers, device fingerprints and the model are all swappable, and the package fires events you can listen for.
 
@@ -121,17 +141,21 @@ You can install the package via composer:
 composer require spatie/laravel-suspicious-login
 ```
 
-Then publish the config file and migration. The install command offers to run the migration:
+Run the install command:
 
 ```bash
 php artisan suspicious-login:install
 ```
 
+It publishes `config/suspicious-login.php` and the migration for the `login_attempts` table, then asks whether to run your application's pending migrations. If you decline, run `php artisan migrate` before using the package. It also offers to star the repository on GitHub.
+
 That's it. The package listens for Laravel's `Login` and `Failed` auth events, so it works with Breeze, Jetstream, Fortify and your own login controllers without changes. Logins restored from a "remember me" cookie are not recorded.
 
-Out of the box the `Balanced` preset is used, and locations are not looked up. To use the location checks, pick a [geolocation driver](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers).
+Out of the box the `Balanced` preset is used, and the `ipinfo` driver looks up public IP addresses without requiring an API token. Lookups are cached for a week and subject to ipinfo's limits. You can choose another [geolocation driver](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) in `config/suspicious-login.php`, or set it to `'null'` to disable lookups and avoid sending IP addresses to an external service.
 
 The default notification requires Laravel's `Notifiable` trait on your user model and working mail configuration. It is queued, so run a queue worker unless you use the `sync` queue connection.
+
+You can [publish the email's Markdown view](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#customizing-the-email-view) to change its content or layout without replacing the notification.
 
 For an existing application, consider starting with `Spatie\SuspiciousLogin\Presets\MonitorOnly`. It records scores and fires events without notifying or blocking users, so you can review the results before enabling actions.
 
@@ -139,9 +163,14 @@ For an existing application, consider starting with `Spatie\SuspiciousLogin\Pres
 
 All documentation is available [on our documentation site](https://spatie.be/docs/laravel-suspicious-login).
 
+- [Get started with a complete example](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/getting-started).
 - [Choose a preset](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) or [customize one](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
 - [Query login attempts](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/working-with-login-attempts) and [add custom properties](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties).
 - [Write checks](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/creating-custom-checks), [write actions](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/writing-your-own-actions), or [listen for events](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/using-events).
+
+### Laravel Boost
+
+The package ships guidelines and a `detecting-suspicious-logins` skill for [Laravel Boost](https://laravel.com/docs/boost). Run `php artisan boost:install` in your application and select this package to give your coding agent its APIs, extension points, and usage examples. See [the setup instructions](https://spatie.be/docs/laravel-suspicious-login/v1/installation-setup#laravel-boost).
 
 ## Testing
 

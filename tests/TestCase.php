@@ -26,6 +26,7 @@ class TestCase extends Orchestra
         config()->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
         config()->set('cache.default', 'array');
         config()->set('auth.providers.users.model', User::class);
+        config()->set('suspicious-login.geolocation.driver', 'null');
     }
 
     protected function defineDatabaseMigrations()

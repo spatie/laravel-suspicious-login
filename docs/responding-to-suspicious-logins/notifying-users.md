@@ -24,9 +24,26 @@ The email lists the time, IP address, location and device of the login, together
 
 The notification is queued, so make sure a queue worker is running. With the `sync` queue connection, it's sent right away.
 
+## Customizing the email view
+
+To change the email's content or layout, publish its Markdown view:
+
+```bash
+php artisan vendor:publish --tag="suspicious-login-views"
+```
+
+Edit `resources/views/vendor/suspicious-login/mail/suspicious-login.blade.php`. Laravel uses your published view instead of the package's view. You don't need to create a notification or change the config.
+
+The view receives:
+
+- `$loginAttempt`: the `LoginAttempt` model, including the IP address, user agent, location, risk score and reasons.
+- `$place`: the city and country joined into a string, or the translated `Unknown` when no location is available.
+
+The template uses Laravel's `<x-mail::message>` component and translation strings. The notification still sets the email's subject. To change the subject, override `toMail()` in your own notification and return `parent::toMail($notifiable)->subject('Was this you?')`.
+
 ## Using your own notification
 
-To change the email, or to notify through Slack, SMS or any other channel, create your own notification. It receives the `LoginAttempt` in its constructor:
+For more control over the email, or to notify through Slack, SMS or any other channel, create your own notification. It receives the `LoginAttempt` in its constructor:
 
 ```php
 namespace App\Notifications;

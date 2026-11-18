@@ -16,7 +16,7 @@ All of this happens during the login request, right after Laravel logs the user 
 
 ## Risk levels
 
-A preset defines two thresholds. With the default `Balanced` preset, they are 40 and 70:
+Two thresholds decide where medium and high risk start. They default to 40 and 70 in `config/suspicious-login.php`, and a preset can override either value. With the default `Balanced` preset and config:
 
 | Score | Risk level |
 | --- | --- |
@@ -25,6 +25,8 @@ A preset defines two thresholds. With the default `Balanced` preset, they are 40
 | 70 to 100 | `RiskLevel::High` |
 
 A low risk login is recorded and nothing else happens. Medium and high risk logins are considered suspicious.
+
+See [configuring risk thresholds](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#configuring-risk-thresholds) to change these values.
 
 ## An example
 
@@ -63,4 +65,4 @@ The first login of a user is never flagged for a new device, IP address or count
 
 Laravel also fires its `Login` event when it logs a user back in with a "remember me" cookie. Those aren't new logins, so the package skips them. Otherwise every visit of a remembered user would be scored.
 
-To disable automatic recording through Laravel's auth events, for example in a staging environment, set `SUSPICIOUS_LOGIN_ENABLED=false`. Explicit calls to `recordSuccessfulLogin()`, `recordFailedLogin()` and `assess()` still work.
+To disable automatic recording through Laravel's auth events, set `enabled` to `false` in `config/suspicious-login.php`. Explicit calls to `recordSuccessfulLogin()`, `recordFailedLogin()` and `assess()` still work.

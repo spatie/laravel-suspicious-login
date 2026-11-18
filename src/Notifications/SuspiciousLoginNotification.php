@@ -32,18 +32,11 @@ class SuspiciousLoginNotification extends Notification implements ShouldQueue
             ? collect([$location->city, $location->countryCode])->filter()->implode(', ')
             : __('Unknown');
 
-        $message = (new MailMessage)
+        return (new MailMessage)
             ->subject(__('Suspicious login to your :app account', ['app' => config('app.name')]))
-            ->line(__('We noticed a login to your account that looks unusual.'))
-            ->line(__('Time: :time', ['time' => $attempt->created_at->toDayDateTimeString()]))
-            ->line(__('IP address: :ip', ['ip' => $attempt->ip_address]))
-            ->line(__('Location: :place', ['place' => $place]))
-            ->line(__('Device: :device', ['device' => $attempt->user_agent ?: __('Unknown')]));
-
-        foreach ($attempt->reasons ?? [] as $reason) {
-            $message->line("- {$reason['reason']}");
-        }
-
-        return $message->line(__('If this was you, you can ignore this email. If it wasn\'t, change your password right away.'));
+            ->markdown('suspicious-login::mail.suspicious-login', [
+                'loginAttempt' => $attempt,
+                'place' => $place,
+            ]);
     }
 }

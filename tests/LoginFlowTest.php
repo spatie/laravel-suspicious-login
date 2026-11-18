@@ -4,6 +4,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\Check;
 use Spatie\SuspiciousLogin\Checks\CheckResult;
@@ -123,6 +124,44 @@ it('notifies the user about a suspicious login with the balanced preset', functi
     Event::assertNotDispatched(SuspiciousLoginBlockedEvent::class);
 });
 
+it('renders the login details and reasons in the notification email', function () {
+    config()->set('app.name', 'My app');
+
+    $attempt = new LoginAttempt([
+        'created_at' => '2026-11-18 19:30:00',
+        'ip_address' => '81.82.83.84',
+        'country_code' => 'BE',
+        'city' => 'Antwerp',
+        'user_agent' => '<script>alert("device")</script>',
+        'reasons' => [
+            ['check' => 'custom', 'score' => 50, 'reason' => 'Unusual <b>device</b>'],
+        ],
+    ]);
+
+    $mail = (new SuspiciousLoginNotification($attempt))->toMail($this->user);
+    $html = $mail->render()->toHtml();
+
+    expect($mail->subject)->toBe('Suspicious login to your My app account')
+        ->and(html_entity_decode(strip_tags($html)))
+        ->toContain('Time: Wed, Nov 18, 2026 7:30 PM', 'IP address: 81.82.83.84', 'Location: Antwerp, BE')
+        ->and($html)
+        ->toContain('&lt;script&gt;', 'Unusual &lt;b&gt;device&lt;/b&gt;', 'change your password right away.')
+        ->not->toContain('<script>', '<b>device</b>');
+});
+
+it('renders the notification email without location, device or reasons', function () {
+    $attempt = new LoginAttempt([
+        'created_at' => '2026-11-18 19:30:00',
+        'ip_address' => '81.82.83.84',
+    ]);
+
+    $mail = (new SuspiciousLoginNotification($attempt))->toMail($this->user);
+
+    expect(html_entity_decode(strip_tags($mail->render()->toHtml())))
+        ->toContain('Location: Unknown', 'Device: Unknown', 'change your password right away.')
+        ->not->toContain('Why this login looks unusual');
+});
+
 it('does not trust a device that was only used in failed or blocked logins', function () {
     attemptLogin();
 
@@ -182,6 +221,35 @@ it('blocks a high risk login with the strict preset', function () {
     Event::assertDispatched(SuspiciousLoginBlockedEvent::class, fn ($event) => $event->loginAttempt->is($attempt) && $event->loginAttempt->blocked);
 
     Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+});
+
+it('allows overriding the blocked login response without replacing the blocking behavior', function () {
+    Event::fake([SuspiciousLoginBlockedEvent::class]);
+
+    config()->set('suspicious-login.preset', Strict::class);
+
+    app()->bind(BlockLoginAction::class, fn () => new class extends BlockLoginAction
+    {
+        protected function respond(LoginAttempt $attempt): never
+        {
+            abort(403, "Login {$attempt->getKey()} requires verification.");
+        }
+    });
+
+    attemptLogin()->assertOk();
+
+    $response = attemptLogin(userAgent: 'curl/8.0');
+
+    $attempt = latestAttempt();
+
+    $response->assertForbidden()
+        ->assertSee("Login {$attempt->getKey()} requires verification.");
+
+    expect($attempt->blocked)->toBeTrue();
+
+    $this->assertGuest();
+
+    Event::assertDispatched(SuspiciousLoginBlockedEvent::class, fn ($event) => $event->loginAttempt->is($attempt) && $event->loginAttempt->blocked);
 });
 
 it('takes no action with the monitor only preset', function () {
