@@ -23,7 +23,7 @@ These are the checks that ship with the package:
 | [Suspicious user agent](suspicious-user-agent) | there is no user agent, or it belongs to a script or headless browser | 20 |
 | [IP reputation](ip-reputation) | the IP address is a Tor exit node or reported for abuse | 50 |
 
-The scores above are the checks' own defaults. Built-in presets can [assign different scores](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#what-each-preset-contains). `CountryCheck` and `MultipleCountriesCheck` are not enabled by any built-in preset; add them to your own preset if you need them.
+The scores above are the checks' own defaults. Built-in presets can [assign different scores](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-what-each-preset-contains). `CountryCheck` and `MultipleCountriesCheck` are not enabled by any built-in preset; add them to your own preset if you need them.
 
 Every check is created with `new()` and has a `score()` method to change how many points it adds. For example, after importing `Spatie\SuspiciousLogin\Checks\NewDeviceCheck`, add this entry to the array returned by your preset's `checks()` method:
 

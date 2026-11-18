@@ -117,7 +117,7 @@ class BlockLoginAction extends Action
 
 `new()` comes from the base `Action` class and resolves the action from the container, so actions can inject dependencies in their constructor. The fluent methods configure it in your preset, like `BlockLoginAction::new()->message('...')`. Because the login happens inside `Auth::attempt()`, the validation exception comes out of your login controller like any other validation error.
 
-To change the response without replacing the blocking and logout behavior, extend `BlockLoginAction` and override `protected function respond(LoginAttempt $attempt): never`. See [customizing the response](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/blocking-logins#customizing-the-response).
+To change the response without replacing the blocking and logout behavior, extend `BlockLoginAction` and override `protected function respond(LoginAttempt $attempt): never`. See [customizing the response](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/blocking-logins#content-customizing-the-response).
 
 Writing your own action, for example to ask for a second factor or alert your security team, works the same way: extend `Action` and implement `execute`. Checks are built the same way too: extend `Check` and return `$this->pass()` or `$this->flag($reason)` from `evaluate`.
 
@@ -155,7 +155,7 @@ Out of the box the `Balanced` preset is used, and the `ipinfo` driver looks up p
 
 The default notification requires Laravel's `Notifiable` trait on your user model and working mail configuration. It is queued, so run a queue worker unless you use the `sync` queue connection.
 
-You can [publish the email's Markdown view](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#customizing-the-email-view) to change its content or layout without replacing the notification.
+You can [publish the email's Markdown view](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#content-customizing-the-email-view) to change its content or layout without replacing the notification.
 
 For an existing application, consider starting with `Spatie\SuspiciousLogin\Presets\MonitorOnly`. It records scores and fires events without notifying or blocking users, so you can review the results before enabling actions.
 
@@ -170,7 +170,7 @@ All documentation is available [on our documentation site](https://spatie.be/doc
 
 ### Laravel Boost
 
-The package ships guidelines and a `detecting-suspicious-logins` skill for [Laravel Boost](https://laravel.com/docs/boost). Run `php artisan boost:install` in your application and select this package to give your coding agent its APIs, extension points, and usage examples. See [the setup instructions](https://spatie.be/docs/laravel-suspicious-login/v1/installation-setup#laravel-boost).
+The package ships guidelines and a `detecting-suspicious-logins` skill for [Laravel Boost](https://laravel.com/docs/boost). Run `php artisan boost:install` in your application and select this package to give your coding agent its APIs, extension points, and usage examples. See [the setup instructions](https://spatie.be/docs/laravel-suspicious-login/v1/installation-setup#content-laravel-boost).
 
 ## Testing
 

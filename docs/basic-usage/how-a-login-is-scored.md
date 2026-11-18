@@ -26,7 +26,7 @@ Two thresholds decide where medium and high risk start. They default to 40 and 7
 
 A low risk login is recorded and nothing else happens. Medium and high risk logins are considered suspicious.
 
-See [configuring risk thresholds](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#configuring-risk-thresholds) to change these values.
+See [configuring risk thresholds](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#content-configuring-risk-thresholds) to change these values.
 
 ## An example
 

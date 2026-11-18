@@ -59,6 +59,6 @@ class MyPreset extends Preset
 }
 ```
 
-This preset uses the default risk thresholds from `config/suspicious-login.php`: 40 for medium risk and 70 for high risk. You can change the config values, or [override either threshold in your preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#configuring-risk-thresholds).
+This preset uses the default risk thresholds from `config/suspicious-login.php`: 40 for medium risk and 70 for high risk. You can change the config values, or [override either threshold in your preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#content-configuring-risk-thresholds).
 
 Checks, actions, geolocation and IP reputation lookups, device fingerprints and the model are all swappable. And when you want to react to something yourself, the package [fires events](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/using-events) you can listen for.
