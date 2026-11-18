@@ -7,7 +7,7 @@ The package fires events at the key moments of a login. Listen for them to build
 
 Every event has one public property, `loginAttempt`, that holds the `Spatie\SuspiciousLogin\Models\LoginAttempt`.
 
-### LoginAttemptRecordedEvent
+## LoginAttemptRecordedEvent
 
 `Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent` is fired for every login attempt, successful or failed, right after it is saved.
 
@@ -15,26 +15,27 @@ For a successful login, it's fired after the login has been scored, so `risk_sco
 
 This is the event to use with the `MonitorOnly` preset, because it also tells you about low risk logins.
 
-### SuspiciousLoginDetectedEvent
+## SuspiciousLoginDetectedEvent
 
 `Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent` is fired when a successful login is medium or high risk. It's fired right before the preset's actions run, and it's fired with every preset, `MonitorOnly` included.
 
-### SuspiciousLoginBlockedEvent
+## SuspiciousLoginBlockedEvent
 
 `Spatie\SuspiciousLogin\Events\SuspiciousLoginBlockedEvent` is fired by [`BlockLoginAction`](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/blocking-logins), after it has marked the attempt as blocked and before it logs the user out.
 
-## Sample usage
+## Notifying admins of blocked logins
 
-Here's a listener that tells your admins in Slack when a login is blocked:
+If your app already has a `LoginBlockedNotification` configured for Slack, create `app/Listeners/NotifyAdminsOfBlockedLogin.php`:
 
 ```php
 namespace App\Listeners;
 
 use App\Notifications\LoginBlockedNotification;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginBlockedEvent;
 
-class NotifyAdminsOfBlockedLogin
+class NotifyAdminsOfBlockedLogin implements ShouldQueue
 {
     public function handle(SuspiciousLoginBlockedEvent $event): void
     {
@@ -43,6 +44,8 @@ class NotifyAdminsOfBlockedLogin
     }
 }
 ```
+
+`LoginBlockedNotification` is an application notification, not a class supplied by this package. It should accept the attempt in its constructor. Install and configure Laravel's Slack notification channel and set `services.slack.security_channel` to the routing value that channel expects. Use an asynchronous queue connection and run a queue worker so delivery happens outside the login request.
 
 Laravel discovers listeners in `app/Listeners` automatically. If you've turned event discovery off, register the listener in a service provider:
 

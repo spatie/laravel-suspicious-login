@@ -3,7 +3,9 @@ title: Overview
 weight: 1
 ---
 
-A check looks at one aspect of a login and decides whether it is suspicious. When it is, the check adds its score to the login's risk score and gives a reason, which ends up in the `reasons` of the login attempt and in the email to the user.
+A check looks at one aspect of a successful login and decides whether it is suspicious. When it is, the check adds points to the risk score and stores a reason on the login attempt. If the preset sends a notification, the default email includes those reasons.
+
+Checks don't notify or block users themselves. Your [preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) decides which checks run and what actions follow the combined score. See [getting started](/docs/laravel-suspicious-login/v1/basic-usage/getting-started) for a complete example.
 
 These are the checks that ship with the package:
 
@@ -21,12 +23,14 @@ These are the checks that ship with the package:
 | [Suspicious user agent](suspicious-user-agent) | there is no user agent, or it belongs to a script or headless browser | 20 |
 | [IP reputation](ip-reputation) | the IP address is a Tor exit node or reported for abuse | 50 |
 
-Every check is created with `new()` and has a `score()` method to change how many points it adds:
+The scores above are the checks' own defaults. Built-in presets can [assign different scores](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#what-each-preset-contains). `CountryCheck` and `MultipleCountriesCheck` are not enabled by any built-in preset; add them to your own preset if you need them.
+
+Every check is created with `new()` and has a `score()` method to change how many points it adds. For example, after importing `Spatie\SuspiciousLogin\Checks\NewDeviceCheck`, add this entry to the array returned by your preset's `checks()` method:
 
 ```php
 NewDeviceCheck::new()->score(40),
 ```
 
-Most checks have a few more options, which you'll find on their own page. You use checks inside a [preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
+Each check's page lists its other options.
 
-Need something else? You can [create your own check](/docs/laravel-suspicious-login/v1/advanced-usage/creating-custom-checks) in a few lines.
+For application-specific signals, [create your own check](/docs/laravel-suspicious-login/v1/advanced-usage/creating-custom-checks).

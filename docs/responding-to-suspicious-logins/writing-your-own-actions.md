@@ -31,6 +31,10 @@ class LogToSecurityChannelAction extends Action
 Use it in your preset like any other action:
 
 ```php
+use App\SuspiciousLogin\Actions\LogToSecurityChannelAction;
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
+
 public function onMediumRisk(): Action|array
 {
     return NotifyUserAction::new();
@@ -41,6 +45,8 @@ public function onHighRisk(): Action|array
     return [NotifyUserAction::new(), LogToSecurityChannelAction::new()];
 }
 ```
+
+These methods belong in your [preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets). Configure a `security` log channel in `config/logging.php`, or change the action to use an existing channel.
 
 Actions are resolved from the container by `new()`, so you can inject dependencies in the constructor. Add your own fluent methods to configure them, the way `BlockLoginAction` has `message()`.
 
@@ -81,10 +87,12 @@ Configure an HTTPS endpoint and its bearer token in `config/services.php`:
 
 ```php
 'security_webhook' => [
-    'url' => env('SECURITY_WEBHOOK_URL'),
+    'url' => 'https://security.example.com/webhooks/suspicious-login',
     'token' => env('SECURITY_WEBHOOK_TOKEN'),
 ],
 ```
+
+Replace the example URL with your endpoint. Keep the token in your deployment's secrets or `.env` file, not in source control.
 
 Then add your action to the preset:
 
@@ -108,6 +116,11 @@ The payload captures the assessment before the remaining actions run; it does no
 Actions run during the login request, after Laravel has logged the user in. That means an action can still change what happens next. Here's an action that flags the session, so a middleware in your app can send the user to a verification page before they continue:
 
 ```php
+namespace App\SuspiciousLogin\Actions;
+
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+
 class RequireVerificationAction extends Action
 {
     public function execute(LoginAttempt $attempt): void

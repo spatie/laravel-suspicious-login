@@ -5,9 +5,11 @@ weight: 3
 
 The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node, and how likely it is to be abusive. Only that check uses these drivers, and only the `Strict` preset contains it.
 
-Choose the driver in `config/suspicious-login.php`:
+To enable Tor detection with the `Strict` preset, set these values in `config/suspicious-login.php`, leaving the other options in place:
 
 ```php
+'preset' => Spatie\SuspiciousLogin\Presets\Strict::class,
+
 'ip_reputation' => [
     'driver' => 'tor',
     // ...
@@ -20,7 +22,17 @@ Choose the driver in `config/suspicious-login.php`:
 | `tor` | yes | no | nothing |
 | `abuseipdb` | yes | yes | an AbuseIPDB API key |
 
-Results are cached per IP address for a day. You can change that with the `ip_reputation.cache_ttl` config option. Private IP addresses are never looked up.
+If you use another preset, [add `IpReputationCheck` to it](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets). Selecting a driver does not add the check for you. The check adds points; it doesn't block a login on its own.
+
+Results are cached per IP address for a day. The `ip_reputation.cache_ttl` config value is in seconds. Private and reserved IP addresses are never looked up.
+
+Cached results are shared between drivers. To refresh a specific address after switching drivers:
+
+```php
+use Illuminate\Support\Facades\Cache;
+
+Cache::forget('suspicious-login:ip-reputation:8.8.8.8');
+```
 
 ## Tor
 
@@ -42,7 +54,7 @@ The `abuseipdb` driver calls the [AbuseIPDB](https://www.abuseipdb.com) API. It 
 
 Keep the key in your deployment's secrets or `.env` file rather than committing it to source control.
 
-When the API can't be reached, the IP address counts as clean, so an outage never blocks your users.
+When the API can't be reached or returns an unsuccessful response, this driver returns no Tor flag or abuse score. The reputation check then adds no points, but other checks can still flag or block the login.
 
 ## Creating your own driver
 

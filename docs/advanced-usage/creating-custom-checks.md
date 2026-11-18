@@ -3,7 +3,7 @@ title: Creating custom checks
 weight: 1
 ---
 
-The [available checks](/docs/laravel-suspicious-login/v1/available-checks/overview) cover the common signals. You know your app better than we do, so you'll probably have a signal of your own. Turning it into a check takes a few lines.
+Write a custom check when you want a signal the [built-in checks](/docs/laravel-suspicious-login/v1/available-checks/overview) don't cover, such as a login to an admin account or an account that has been inactive for months.
 
 A check is a class that extends `Spatie\SuspiciousLogin\Checks\Check` and implements `evaluate`. It receives the `LoginAttempt` that is being scored and returns either `$this->pass()` or `$this->flag($reason)`:
 
@@ -31,17 +31,33 @@ class AdminLoginCheck extends Check
 
 The `$score` property is the default score. Like every check, yours gets a `score()` method to change it in a preset. The reason you pass to `flag` is stored in the `reasons` of the login attempt and shown in the email to the user, so write it for a person.
 
-Add the check to [your preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets):
+To add it to the existing `Balanced` checks, create `app/SuspiciousLogin/MyPreset.php`:
 
 ```php
-public function checks(): array
+namespace App\SuspiciousLogin;
+
+use App\SuspiciousLogin\Checks\AdminLoginCheck;
+use Spatie\SuspiciousLogin\Presets\Balanced;
+
+class MyPreset extends Balanced
 {
-    return [
-        ...parent::checks(),
-        AdminLoginCheck::new()->score(30),
-    ];
+    public function checks(): array
+    {
+        return [
+            ...parent::checks(),
+            AdminLoginCheck::new()->score(30),
+        ];
+    }
 }
 ```
+
+Then select it in `config/suspicious-login.php`:
+
+```php
+'preset' => App\SuspiciousLogin\MyPreset::class,
+```
+
+This keeps `Balanced`'s notification actions. To choose your own actions and thresholds, see [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
 
 ## Looking at earlier logins
 

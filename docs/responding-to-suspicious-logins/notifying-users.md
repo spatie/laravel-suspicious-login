@@ -3,7 +3,7 @@ title: Notifying users
 weight: 1
 ---
 
-The person who knows best whether a login was them is the user. `Spatie\SuspiciousLogin\Actions\NotifyUserAction` sends them an email about the suspicious login, so they can change their password if it wasn't them. The `Lenient`, `Balanced` and `Strict` presets all use it.
+`Spatie\SuspiciousLogin\Actions\NotifyUserAction` emails the user about a suspicious login. `Balanced` and `Strict` notify on medium and high risk; `Lenient` only notifies on high risk. To notify on both levels in your own preset:
 
 ```php
 use Spatie\SuspiciousLogin\Actions\Action;
@@ -39,7 +39,34 @@ The view receives:
 - `$loginAttempt`: the `LoginAttempt` model, including the IP address, user agent, location, risk score and reasons.
 - `$place`: the city and country joined into a string, or the translated `Unknown` when no location is available.
 
-The template uses Laravel's `<x-mail::message>` component and translation strings. The notification still sets the email's subject. To change the subject, override `toMail()` in your own notification and return `parent::toMail($notifiable)->subject('Was this you?')`.
+The template uses Laravel's `<x-mail::message>` component and translation strings.
+
+## Customizing the subject
+
+Publishing the view does not change the email's subject. To change only the subject, create `app/Notifications/SuspiciousLoginNotification.php`:
+
+```php
+namespace App\Notifications;
+
+use Illuminate\Notifications\Messages\MailMessage;
+use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification as BaseNotification;
+
+class SuspiciousLoginNotification extends BaseNotification
+{
+    public function toMail(object $notifiable): MailMessage
+    {
+        return parent::toMail($notifiable)->subject('Was this you?');
+    }
+}
+```
+
+Select your notification in `config/suspicious-login.php`:
+
+```php
+'notification' => App\Notifications\SuspiciousLoginNotification::class,
+```
+
+This keeps the default content, published view and queue behavior.
 
 ## Using your own notification
 
@@ -83,4 +110,4 @@ Then register it in `config/suspicious-login.php`:
 'notification' => App\Notifications\SuspiciousLoginNotification::class,
 ```
 
-You can also extend `Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification` and only override the methods you want to change.
+The example's `account.logins` route must exist in your application and show only the authenticated user's activity. See [working with login attempts](/docs/laravel-suspicious-login/v1/basic-usage/working-with-login-attempts) for a user-scoped query. For Slack or SMS, install and configure the Laravel notification channel you choose; the package only supplies the mail notification.

@@ -31,7 +31,13 @@ Here's how Anna's login from New York, ten hours after her usual morning login i
 
 ## Start with MonitorOnly
 
-Adding the package to an app with existing users? Start with `MonitorOnly`. Let it run for a week or two, then look at the scores your real users get:
+For an app with existing users, set `MonitorOnly` in `config/suspicious-login.php` to collect scores without notifying or blocking anyone:
+
+```php
+'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnly::class,
+```
+
+It still fires events, so any listeners you registered continue to run. Let it run for a week or two, then look at the scores your real users get:
 
 ```php
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
@@ -42,7 +48,7 @@ LoginAttempt::query()
     ->get(['authenticatable_type', 'authenticatable_id', 'ip_address', 'country_code', 'risk_score', 'reasons']);
 ```
 
-If people who travel a lot or use a VPN show up as high risk, lower the weight of those checks before you switch to a preset that notifies or blocks. The next page shows how.
+If people who travel a lot or use a VPN show up as high risk, [lower the weight of those checks](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) before switching to a preset that notifies or blocks.
 
 ## What each preset contains
 

@@ -21,17 +21,25 @@ The default `ipinfo` driver works without an API token. It sends public IP addre
 | `maxmind` | yes | yes | `geoip2/geoip2` and a database file |
 | `null` | no | no | nothing; disables location lookups |
 
-Locations are cached per IP address for a week. You can change that with the `geolocation.cache_ttl` config option. Private and reserved IP addresses, such as `127.0.0.1` in local development, are never looked up.
+Locations are cached per IP address for a week. To cache them for one day instead, set `cache_ttl` in seconds in `config/suspicious-login.php`:
 
-When a driver can't find a location, for example because an API is down, the login is scored without one. The location checks then pass, and nothing breaks.
+```php
+'geolocation' => [
+    'driver' => 'ipinfo',
+    'cache_ttl' => 60 * 60 * 24,
+    // ...
+],
+```
 
-## Cloudflare
+Private and reserved IP addresses, such as `127.0.0.1` in local development, are never looked up. When no location is available, the location checks pass. Other checks still contribute to the score.
 
-When your app runs behind Cloudflare, every request already carries the visitor's country in the `CF-IPCountry` header. The `cloudflare` driver reads it, so it's free and adds no time to a login.
+Cached locations are shared between drivers. After switching drivers, an IP address can keep its old location until the cache entry expires. To refresh a specific address:
 
-For the city and coordinates, which impossible travel needs, turn on the "Add visitor location headers" managed transform in your Cloudflare dashboard.
+```php
+use Illuminate\Support\Facades\Cache;
 
-Make sure Laravel [trusts Cloudflare as a proxy](https://laravel.com/docs/requests#configuring-trusted-proxies). Otherwise `$request->ip()` returns the address of a Cloudflare server instead of the visitor's, every login seems to come from a handful of IP addresses, and the location cached for one of them is used for everybody behind it.
+Cache::forget('suspicious-login:location:8.8.8.8');
+```
 
 ## ipinfo
 
@@ -50,6 +58,21 @@ The `ipinfo` driver calls the [ipinfo.io](https://ipinfo.io) API. It works witho
 Keep the token in your deployment's secrets or `.env` file rather than committing it to source control.
 
 Requests time out after two seconds, so a slow API never holds up a login for long.
+
+## Cloudflare
+
+The `cloudflare` driver reads location headers from the current request without calling an external API. Select it in `config/suspicious-login.php`:
+
+```php
+'geolocation' => [
+    'driver' => 'cloudflare',
+    // ...
+],
+```
+
+When your app runs behind Cloudflare, the `CF-IPCountry` header supplies the visitor's country. For the city and coordinates, which impossible travel needs, turn on the "Add visitor location headers" managed transform in your Cloudflare dashboard.
+
+Make sure Laravel [trusts Cloudflare as a proxy](https://laravel.com/docs/requests#configuring-trusted-proxies). Otherwise `$request->ip()` returns the address of a Cloudflare server instead of the visitor's, and a location cached for that address can be reused for other visitors. Only accept these headers from Cloudflare; requests sent directly to your server must not be able to supply their own location headers.
 
 ## MaxMind
 
@@ -73,7 +96,20 @@ Then [download a GeoLite2 City database](https://dev.maxmind.com/geoip/geolite2-
 ],
 ```
 
-MaxMind updates its databases every week. Their `geoipupdate` tool keeps your copy current.
+Use MaxMind's `geoipupdate` tool to keep your database current.
+
+## Disabling location lookups
+
+To avoid sending IP addresses to an external service without setting up another driver, select the string `'null'` in `config/suspicious-login.php`:
+
+```php
+'geolocation' => [
+    'driver' => 'null',
+    // ...
+],
+```
+
+This stops new lookups. Previously cached locations can still be used until they expire; once no cached location remains, location fields stay empty and location checks pass. Existing attempts keep their stored locations.
 
 ## Creating your own driver
 
