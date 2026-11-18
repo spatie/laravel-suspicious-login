@@ -1,11 +1,21 @@
-# Detect suspicious logins in your Laravel app
+<div align="left">
+    <a href="https://spatie.be/open-source?utm_source=github&utm_medium=banner&utm_campaign=laravel-suspicious-login">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://spatie.be/packages/header/laravel-suspicious-login/html/dark.webp">
+        <img alt="Logo for Laravel Suspicious Login" src="https://spatie.be/packages/header/laravel-suspicious-login/html/light.webp">
+      </picture>
+    </a>
+
+<h1>Detect suspicious logins in your Laravel app</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/spatie/laravel-suspicious-login.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-suspicious-login)
 [![GitHub Tests Action Status](https://github.com/spatie/laravel-suspicious-login/actions/workflows/run-tests.yml/badge.svg)](https://github.com/spatie/laravel-suspicious-login/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://github.com/spatie/laravel-suspicious-login/actions/workflows/fix-php-code-style-issues.yml/badge.svg)](https://github.com/spatie/laravel-suspicious-login/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/spatie/laravel-suspicious-login.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-suspicious-login)
 
-A stolen password rarely looks like an attack: to your app, it's a normal login. This package looks at everything around that login (the device, the IP address, where it comes from, how many attempts failed before it) and gives it a risk score. Depending on the score, it can notify the user, block the login, or do whatever you want.
+</div>
+
+A login with the correct password can still come from an attacker. This package looks at everything around that login (the device, the IP address, where it comes from, how many attempts failed before it) and gives it a risk score. Depending on the score, it can notify the user, block the login, or do whatever you want.
 
 Here's how a login from a new laptop in New York, to an account that always logs in from Antwerp, is scored with the default `Balanced` preset and geolocation configured:
 
