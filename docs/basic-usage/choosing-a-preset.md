@@ -45,16 +45,6 @@ SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
 
 `AdminPanelPreset` is a [custom preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#content-writing-your-own-preset); `is_admin` and `skip_login_checks` are example user attributes. Return a preset class name, using `NonePreset` to skip checks. The callback also applies to manual recording and `assess()`, but not failed logins.
 
-## The same login, three presets
-
-Here's how Anna's login from New York, ten hours after her usual morning login in Antwerp, plays out with each preset. She has logged in every morning for a few weeks, and a geolocation driver is configured.
-
-| Preset | Flagged by | Score | Risk level | What happens |
-| --- | --- | --- | --- | --- |
-| `DefaultPreset` | new device (25), new IP (10), new country (30) | 65 | medium | Anna gets an email |
-| `MonitorOnlyPreset` | same as `DefaultPreset` | 65 | medium | the attempt is stored, nothing else |
-| `NonePreset` | no checks run | unset | unset | the attempt is stored without assessment |
-
 ## Start with MonitorOnlyPreset
 
 For an app with existing users, set `MonitorOnlyPreset` in `config/suspicious-login.php` to collect scores without notifying or blocking anyone:
