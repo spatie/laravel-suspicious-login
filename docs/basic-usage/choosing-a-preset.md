@@ -1,5 +1,5 @@
 ---
-title: Choosing a preset
+title: Determine the preset
 weight: 2
 ---
 
