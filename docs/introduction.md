@@ -32,6 +32,10 @@ use Spatie\SuspiciousLogin\Presets\Preset;
 
 class MyPreset extends Preset
 {
+    protected int $mediumRiskThreshold = 40;
+
+    protected int $highRiskThreshold = 70;
+
     public function checks(): array
     {
         return [
@@ -55,7 +59,7 @@ class MyPreset extends Preset
 }
 ```
 
-This preset uses the configured thresholds: medium risk starts at 40, high risk at 70. Checks add their scores when they flag a login; only the actions for the resulting risk level run. Put `BlockLoginAction` last because it ends the login request. You can [override the thresholds and customize the preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets), or [choose a different preset per login](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-choosing-a-preset-per-login).
+This preset sets medium risk to start at 40 and high risk at 70. Both threshold properties are optional; leave them out to use the values in `config/suspicious-login.php`. Checks add their scores when they flag a login; only the actions for the resulting risk level run. Put `BlockLoginAction` last because it ends the login request. You can [customize the preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets), or [choose a different preset per login](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-choosing-a-preset-per-login).
 
 The package listens for Laravel's login events, so it works with Breeze, Jetstream, Fortify and your own session login controllers. Checks, actions and drivers are replaceable, and [events](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/using-events) let you react to login attempts yourself.
 
