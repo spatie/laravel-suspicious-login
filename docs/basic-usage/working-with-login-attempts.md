@@ -17,8 +17,8 @@ Every login and failed login is stored as a `Spatie\SuspiciousLogin\Models\Login
 | `ip_address`, `user_agent` | Taken from the request. |
 | `device_fingerprint` | A hash that identifies the device. See [device fingerprints](/docs/laravel-suspicious-login/v1/advanced-usage/device-fingerprints). |
 | `country_code`, `city`, `latitude`, `longitude` | The location, when a [geolocation driver](/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) found one. |
-| `risk_score`, `risk_level` | The score from 0 to 100 and the `RiskLevel` enum. `null` for failed logins. |
-| `reasons` | An array with the check, score and human readable reason for every check that flagged the login. |
+| `risk_score`, `risk_level` | The score from 0 to 100 and the `RiskLevel` enum. `null` for failed logins and logins using `NonePreset`. |
+| `reasons` | An array with the check, score and human readable reason for every check that flagged the login. `null` when the login wasn't assessed. |
 | `properties` | Your [custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties), or `null` when there are none. |
 
 ## Showing users their recent logins

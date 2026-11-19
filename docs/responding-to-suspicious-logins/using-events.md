@@ -11,13 +11,13 @@ Every event has one public property, `loginAttempt`, that holds the `Spatie\Susp
 
 `Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent` is fired for every login attempt, successful or failed, right after it is saved.
 
-For a successful login, it's fired after the login has been scored, so `risk_score`, `risk_level` and `reasons` are filled in, but before the preset's actions run. For a failed login, those attributes are `null`.
+For an assessed successful login, it's fired after the login has been scored, so `risk_score`, `risk_level` and `reasons` are filled in, but before the preset's actions run. For a failed login or a login using `NonePreset`, those attributes are `null`.
 
-This is the event to use with the `MonitorOnly` preset, because it also tells you about low risk logins.
+This is the event to use with `MonitorOnlyPreset` or `NonePreset`, because it also tells you about low risk and unassessed logins.
 
 ## SuspiciousLoginDetectedEvent
 
-`Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent` is fired when a successful login is medium or high risk. It's fired right before the preset's actions run, and it's fired with every preset, `MonitorOnly` included.
+`Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent` is fired when a successful login is medium or high risk. It's fired right before the preset's actions run, including with `MonitorOnlyPreset`. It does not fire with `NonePreset`, which skips assessment.
 
 ## SuspiciousLoginBlockedEvent
 

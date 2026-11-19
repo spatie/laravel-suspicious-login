@@ -18,7 +18,7 @@ The install command publishes `config/suspicious-login.php` and the migration fo
 
 ## Create a preset
 
-A preset chooses the checks to run, their scores, and the actions for medium and high risk. Create `app/SuspiciousLogin/ProtectLogins.php`:
+A preset chooses the checks to run, their scores, and the actions for medium and high risk. Create `app/SuspiciousLogin/ProtectLoginsPreset.php`:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -30,7 +30,7 @@ use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
 use Spatie\SuspiciousLogin\Presets\Preset;
 
-class ProtectLogins extends Preset
+class ProtectLoginsPreset extends Preset
 {
     public function checks(): array
     {
@@ -57,14 +57,14 @@ class ProtectLogins extends Preset
 
 Each check adds its score when it flags the login. `NotifyUserAction` sends the user an email; `BlockLoginAction` marks the attempt as blocked, logs the user out, and throws a validation exception. Put blocking last because it ends the request. High risk runs only `onHighRisk()`, not the medium-risk actions as well.
 
-You can also [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) instead of writing one. The default `Balanced` preset notifies users without blocking them. See [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) for extending a built-in preset.
+You can also [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) instead of writing one. The default `BalancedPreset` notifies users without blocking them. See [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) for extending a built-in preset.
 
 ## Configure the package
 
 In the published `config/suspicious-login.php`, set these values, leaving the other options in place:
 
 ```php
-'preset' => App\SuspiciousLogin\ProtectLogins::class,
+'preset' => App\SuspiciousLogin\ProtectLoginsPreset::class,
 
 'risk_thresholds' => [
     'medium' => 40,
@@ -121,10 +121,11 @@ foreach ($attempts as $attempt) {
 }
 ```
 
-`reasons` contains the flagged checks, their scores, and their explanations. `risk_level` is a `RiskLevel` enum on assessed attempts; failed logins have no risk level. See [working with login attempts](/docs/laravel-suspicious-login/v1/basic-usage/working-with-login-attempts) for history queries and pruning.
+`reasons` contains the flagged checks, their scores, and their explanations. `risk_level` is a `RiskLevel` enum on assessed attempts; failed logins and logins using `NonePreset` have no risk level. See [working with login attempts](/docs/laravel-suspicious-login/v1/basic-usage/working-with-login-attempts) for history queries and pruning.
 
 ## Customize further
 
+- [Choose a preset per login](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-choosing-a-preset-per-login) to apply stricter checks to admins or skip assessment with `NonePreset`.
 - [Add custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties) to store application context with each attempt.
 - [Record logins manually](/docs/laravel-suspicious-login/v1/basic-usage/recording-logins-manually) when your authentication flow doesn't fire Laravel's events. Don't combine manual and automatic recording for the same login.
 - [Write your own checks](/docs/laravel-suspicious-login/v1/advanced-usage/creating-custom-checks) for application-specific signals.

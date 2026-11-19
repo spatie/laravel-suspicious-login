@@ -3,6 +3,7 @@
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
@@ -16,9 +17,10 @@ use Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification;
-use Spatie\SuspiciousLogin\Presets\Balanced;
-use Spatie\SuspiciousLogin\Presets\MonitorOnly;
-use Spatie\SuspiciousLogin\Presets\Strict;
+use Spatie\SuspiciousLogin\Presets\BalancedPreset;
+use Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset;
+use Spatie\SuspiciousLogin\Presets\NonePreset;
+use Spatie\SuspiciousLogin\Presets\StrictPreset;
 
 beforeEach(function () {
     Notification::fake();
@@ -193,7 +195,7 @@ it('treats a browser update as the same device', function () {
 it('blocks a high risk login with the strict preset', function () {
     Event::fake([SuspiciousLoginBlockedEvent::class]);
 
-    config()->set('suspicious-login.preset', Strict::class);
+    config()->set('suspicious-login.preset', StrictPreset::class);
 
     fakeIpinfoLocations([
         '81.82.83.84' => ['BE', 'Antwerp', '51.2194,4.4025'],
@@ -226,7 +228,7 @@ it('blocks a high risk login with the strict preset', function () {
 it('allows overriding the blocked login response without replacing the blocking behavior', function () {
     Event::fake([SuspiciousLoginBlockedEvent::class]);
 
-    config()->set('suspicious-login.preset', Strict::class);
+    config()->set('suspicious-login.preset', StrictPreset::class);
 
     app()->bind(BlockLoginAction::class, fn () => new class extends BlockLoginAction
     {
@@ -253,7 +255,7 @@ it('allows overriding the blocked login response without replacing the blocking 
 });
 
 it('takes no action with the monitor only preset', function () {
-    config()->set('suspicious-login.preset', MonitorOnly::class);
+    config()->set('suspicious-login.preset', MonitorOnlyPreset::class);
 
     attemptLogin();
 
@@ -304,7 +306,7 @@ it('does not record a login restored from the remember me cookie', function () {
 });
 
 it('adds custom properties to every attempt before the checks run', function () {
-    config()->set('suspicious-login.preset', BalancedWithTenantCheck::class);
+    config()->set('suspicious-login.preset', BalancedWithTenantCheckPreset::class);
 
     SuspiciousLogin::addPropertiesUsing(fn (Request $request, ?Authenticatable $user) => [
         'tenant' => $request->header('X-Tenant'),
@@ -337,7 +339,7 @@ it('lets properties passed when recording manually override the callback', funct
 it('assesses a login without saving it, firing events or running actions', function () {
     Event::fake([LoginAttemptRecordedEvent::class, SuspiciousLoginDetectedEvent::class]);
 
-    config()->set('suspicious-login.preset', Strict::class);
+    config()->set('suspicious-login.preset', StrictPreset::class);
 
     $attempt = new LoginAttempt(['user_agent' => 'curl/8.0']);
 
@@ -365,7 +367,112 @@ it('skips notifying a user that no longer exists', function () {
     Notification::assertNothingSent();
 });
 
-class BalancedWithTenantCheck extends Balanced
+it('selects a preset per user for automatic logins', function () {
+    createUser('member@example.com');
+
+    SuspiciousLogin::determinePresetUsing(fn (LoginAttempt $attempt) => $attempt->authenticatable->email === 'freek@spatie.be'
+        ? StrictPreset::class
+        : config('suspicious-login.preset'));
+
+    attemptLogin(userAgent: 'curl/8.0')->assertOk();
+
+    expect(latestAttempt()->risk_score)->toBe(30)
+        ->and(latestAttempt()->risk_level)->toBe(RiskLevel::Medium);
+
+    Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+
+    attemptLogin(email: 'member@example.com', userAgent: 'curl/8.0')->assertOk();
+
+    expect(latestAttempt()->risk_score)->toBe(20)
+        ->and(latestAttempt()->risk_level)->toBe(RiskLevel::Low);
+
+    Notification::assertCount(1);
+});
+
+it('uses the selected preset for actions even after the attempt is saved', function () {
+    SuspiciousLogin::determinePresetUsing(fn (LoginAttempt $attempt) => $attempt->exists
+        ? NonePreset::class
+        : StrictPreset::class);
+
+    attemptLogin(userAgent: 'curl/8.0')->assertOk();
+
+    expect(latestAttempt()->risk_level)->toBe(RiskLevel::Medium);
+
+    Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+});
+
+it('records without assessment or lookups with the none preset', function (bool $useResolver) {
+    Event::fake([LoginAttemptRecordedEvent::class, SuspiciousLoginDetectedEvent::class]);
+
+    fakeIpinfoLocations(['81.82.83.84' => ['BE', 'Antwerp', '51.2194,4.4025']]);
+
+    if ($useResolver) {
+        SuspiciousLogin::addPropertiesUsing(fn () => ['skip_checks' => true]);
+
+        SuspiciousLogin::determinePresetUsing(fn (LoginAttempt $attempt) => $attempt->guard === 'web' && $attempt->getProperty('skip_checks')
+            ? NonePreset::class
+            : StrictPreset::class);
+    }
+
+    if (! $useResolver) {
+        config()->set('suspicious-login.preset', NonePreset::class);
+    }
+
+    attemptLogin(userAgent: 'curl/8.0')->assertOk();
+
+    expect(latestAttempt())
+        ->successful->toBeTrue()
+        ->blocked->toBeFalse()
+        ->risk_score->toBeNull()
+        ->risk_level->toBeNull()
+        ->reasons->toBeNull()
+        ->country_code->toBeNull()
+        ->and(latestAttempt()->authenticatable->is($this->user))->toBeTrue()
+        ->and(latestAttempt()->isSuspicious())->toBeFalse();
+
+    Http::assertNothingSent();
+    Notification::assertNothingSent();
+    Event::assertDispatched(LoginAttemptRecordedEvent::class, fn ($event) => $event->loginAttempt->is(latestAttempt()));
+    Event::assertNotDispatched(SuspiciousLoginDetectedEvent::class);
+})->with([true, false]);
+
+it('selects presets for manual recording and standalone assessment', function () {
+    SuspiciousLogin::determinePresetUsing(fn (LoginAttempt $attempt) => $attempt->guard === 'api'
+        ? NonePreset::class
+        : StrictPreset::class);
+
+    $attempt = SuspiciousLogin::recordSuccessfulLogin($this->user, guard: 'api');
+
+    expect($attempt->fresh()->risk_level)->toBeNull();
+
+    $attempt = new LoginAttempt(['user_agent' => 'curl/8.0']);
+
+    SuspiciousLogin::assess($attempt);
+
+    expect($attempt->risk_score)->toBe(30)
+        ->and($attempt->risk_level)->toBe(RiskLevel::Medium);
+
+    $attempt->guard = 'api';
+
+    SuspiciousLogin::assess($attempt);
+
+    expect($attempt->risk_score)->toBeNull()
+        ->and($attempt->risk_level)->toBeNull()
+        ->and($attempt->reasons)->toBeNull();
+});
+
+it('records failed attempts without selecting a preset', function () {
+    SuspiciousLogin::determinePresetUsing(function () {
+        throw new RuntimeException('Failed attempts should not select a preset.');
+    });
+
+    attemptLogin(password: 'wrong')->assertUnauthorized();
+
+    expect(latestAttempt()->successful)->toBeFalse()
+        ->and(latestAttempt()->risk_level)->toBeNull();
+});
+
+class BalancedWithTenantCheckPreset extends BalancedPreset
 {
     public function checks(): array
     {

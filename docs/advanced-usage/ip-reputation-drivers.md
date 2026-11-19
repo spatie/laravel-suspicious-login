@@ -3,12 +3,12 @@ title: IP reputation drivers
 weight: 3
 ---
 
-The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node, and how likely it is to be abusive. Only that check uses these drivers, and only the `Strict` preset contains it.
+The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node, and how likely it is to be abusive. Only that check uses these drivers, and only `StrictPreset` contains it.
 
-To enable Tor detection with the `Strict` preset, set these values in `config/suspicious-login.php`, leaving the other options in place:
+To enable Tor detection with `StrictPreset`, set these values in `config/suspicious-login.php`, leaving the other options in place:
 
 ```php
-'preset' => Spatie\SuspiciousLogin\Presets\Strict::class,
+'preset' => Spatie\SuspiciousLogin\Presets\StrictPreset::class,
 
 'ip_reputation' => [
     'driver' => 'tor',
@@ -98,4 +98,4 @@ Then select the driver in `config/suspicious-login.php`:
 ],
 ```
 
-Its results use the same per-IP cache as the built-in drivers. Add `IpReputationCheck::new()` to your preset if you are not using `Strict`; selecting a driver does not add the check for you.
+Its results use the same per-IP cache as the built-in drivers. Add `IpReputationCheck::new()` to your preset if you are not using `StrictPreset`; selecting a driver does not add the check for you.

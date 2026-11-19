@@ -52,6 +52,6 @@ Do not claim a login was blocked merely because this notification is sent: the p
 
 Use the events in `Spatie\SuspiciousLogin\Events` for logging and integrations instead of adding logging configuration. Each has a public `$loginAttempt` property:
 
-- `LoginAttemptRecordedEvent`: after saving any attempt; successful attempts are scored first. Failed attempts are stored without scoring or preset actions.
-- `SuspiciousLoginDetectedEvent`: after recording a medium/high-risk successful login and before executing its actions. Also fires with `MonitorOnly`.
+- `LoginAttemptRecordedEvent`: after saving any attempt; successful attempts are scored first except with `NonePreset`. Failed attempts and `NonePreset` logins are stored without scoring or preset actions.
+- `SuspiciousLoginDetectedEvent`: after recording a medium/high-risk successful login and before executing its actions. Also fires with `MonitorOnlyPreset`, never with `NonePreset`.
 - `SuspiciousLoginBlockedEvent`: when `BlockLoginAction` marks the attempt blocked, before logout and rejection.

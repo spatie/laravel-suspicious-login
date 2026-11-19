@@ -16,13 +16,13 @@ The default thresholds live in `config/suspicious-login.php`:
 ],
 ```
 
-`Balanced`, `MonitorOnly` and custom presets use these values unless they define their own thresholds. `Strict` overrides them with 30 and 60; `Lenient` uses 50 and 80.
+`BalancedPreset`, `MonitorOnlyPreset` and custom presets use these values unless they define their own thresholds. `StrictPreset` overrides them with 30 and 60; `LenientPreset` uses 50 and 80.
 
 To override either threshold in a preset, define `$mediumRiskThreshold` or `$highRiskThreshold`. A property takes precedence over the config value. Leave a property out to inherit the parent's threshold, or the config value when the parent doesn't define one.
 
 ## Tweaking a shipped preset
 
-Let's say you like `Balanced`, but you want to block logins from one country and you consider a new IP address meaningless because your users are mostly on mobile networks. Extend the preset and override what you need:
+Let's say you like `BalancedPreset`, but you want to block logins from one country and you consider a new IP address meaningless because your users are mostly on mobile networks. Extend the preset and override what you need:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -33,23 +33,19 @@ use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\Check;
 use Spatie\SuspiciousLogin\Checks\CountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewIpCheck;
-use Spatie\SuspiciousLogin\Presets\Balanced;
+use Spatie\SuspiciousLogin\Presets\BalancedPreset;
 
-class MyPreset extends Balanced
+class MyPreset extends BalancedPreset
 {
     protected int $highRiskThreshold = 60;
 
     public function checks(): array
     {
-        $checks = array_filter(
-            parent::checks(),
-            fn (Check $check) => ! $check instanceof NewIpCheck,
-        );
-
-        return [
-            ...$checks,
-            CountryCheck::new()->block(['KP'])->score(100),
-        ];
+        return collect(parent::checks())
+            ->reject(fn (Check $check) => $check instanceof NewIpCheck)
+            ->push(CountryCheck::new()->block(['KP'])->score(100))
+            ->values()
+            ->all();
     }
 
     public function onHighRisk(): Action|array

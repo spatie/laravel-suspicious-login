@@ -5,7 +5,7 @@ weight: 1
 
 Every time someone tries to log in, the package stores a `LoginAttempt`. Failed attempts are only recorded, because there is nothing to protect yet. Successful logins go through a few more steps:
 
-1. The package looks up where the IP address is, using your [geolocation driver](/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers).
+1. The package [chooses a preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-choosing-a-preset-per-login), then looks up where the IP address is, using your [geolocation driver](/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers). With `NonePreset`, it only saves the attempt and fires `LoginAttemptRecordedEvent`; no lookup, scoring or actions run.
 2. It runs every check of the [preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset). Each check compares the login with the user's earlier logins, or with what happened recently on the same IP address.
 3. Each check that flags the login adds its score. The scores are added up, and the total is capped at 100.
 4. The preset turns that score into a risk level: low, medium or high.
@@ -16,7 +16,7 @@ All of this happens during the login request, right after Laravel logs the user 
 
 ## Risk levels
 
-Two thresholds decide where medium and high risk start. They default to 40 and 70 in `config/suspicious-login.php`, and a preset can override either value. With the default `Balanced` preset and config:
+Two thresholds decide where medium and high risk start. They default to 40 and 70 in `config/suspicious-login.php`, and a preset can override either value. With the default `BalancedPreset` and config:
 
 | Score | Risk level |
 | --- | --- |
@@ -32,7 +32,7 @@ See [configuring risk thresholds](/docs/laravel-suspicious-login/v1/basic-usage/
 
 Let's go back to Anna from the introduction. She has been logging in every morning from Antwerp on her MacBook. Tonight, someone logs in to her account from New York, using Firefox on Windows.
 
-The `Balanced` preset runs its checks:
+`BalancedPreset` runs its checks:
 
 - `NewDeviceCheck` has never seen this device in one of Anna's logins. **+25**
 - `NewIpCheck` has never seen this IP address. **+10**
@@ -40,7 +40,7 @@ The `Balanced` preset runs its checks:
 - `ImpossibleTravelCheck` compares the location with her login this morning. Antwerp to New York in ten hours is possible by plane, so it passes.
 - `FailedAttemptsCheck`, `CredentialStuffingCheck` and `SuspiciousUserAgentCheck` pass too.
 
-The score is 65, which is medium risk. The `Balanced` preset notifies Anna, and the attempt is stored like this:
+The score is 65, which is medium risk. `BalancedPreset` notifies Anna, and the attempt is stored like this:
 
 ```php
 $attempt->risk_score; // 65

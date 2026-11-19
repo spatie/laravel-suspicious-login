@@ -37,10 +37,10 @@ class SuspiciousUserAgentCheck extends Check
             return $this->flag(__('Login without a user agent'));
         }
 
-        foreach ($this->patterns as $pattern) {
-            if (str_contains($userAgent, $pattern)) {
-                return $this->flag(__('Login from an automated client (:client)', ['client' => $pattern]));
-            }
+        $pattern = collect($this->patterns)->first(fn (string $pattern) => str_contains($userAgent, $pattern));
+
+        if ($pattern !== null) {
+            return $this->flag(__('Login from an automated client (:client)', ['client' => $pattern]));
         }
 
         return $this->pass();

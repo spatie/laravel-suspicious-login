@@ -13,7 +13,7 @@ use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
 /**
  * Only notifies users about logins that trip several checks at once.
  */
-class Lenient extends Preset
+class LenientPreset extends Preset
 {
     protected int $mediumRiskThreshold = 50;
 

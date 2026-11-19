@@ -33,9 +33,10 @@ class TorDriver implements IpReputationDriver
                 return [];
             }
 
-            $exitNodes = preg_split('/\R/', trim($response->body()));
-
-            return array_flip(array_filter($exitNodes));
+            return collect(preg_split('/\R/', trim($response->body())))
+                ->filter()
+                ->flip()
+                ->all();
         });
     }
 }

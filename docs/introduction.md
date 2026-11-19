@@ -7,7 +7,7 @@ A login with the correct password can still come from an attacker. This package 
 
 Each suspicious signal adds points to a risk score. Your preset decides which checks run and whether to notify the user, block the login or run your own actions.
 
-For example, Anna usually logs in from Antwerp on her MacBook. Someone signs in to her account from a new device in New York. With the default `Balanced` preset and its ipinfo location lookup:
+For example, Anna usually logs in from Antwerp on her MacBook. Someone signs in to her account from a new device in New York. With the default `BalancedPreset` and its ipinfo location lookup:
 
 ```
 Login from a new device                  +25
@@ -17,7 +17,43 @@ Login from a new country (US)            +30
 Risk score                                65  → medium risk
 ```
 
-A medium risk login emails Anna with those reasons. `Balanced` never blocks logins; `Strict` also blocks high risk session logins. You can [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) or [write your own](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
+A medium risk login emails Anna with those reasons. `BalancedPreset` never blocks logins; `StrictPreset` also blocks high risk session logins. You can [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) or [write your own](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
+
+Here's what a custom preset looks like:
+
+```php
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
+use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
+use Spatie\SuspiciousLogin\Checks\CountryCheck;
+use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
+use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
+use Spatie\SuspiciousLogin\Presets\Preset;
+
+class MyPreset extends Preset
+{
+    public function checks(): array
+    {
+        return [
+            NewDeviceCheck::new()->score(30),
+            ImpossibleTravelCheck::new()->maxSpeedInKilometersPerHour(1000)->score(60),
+            CountryCheck::new()->onlyAllow(['BE', 'NL', 'FR'])->score(60),
+        ];
+    }
+
+    public function onMediumRisk(): Action|array
+    {
+        return NotifyUserAction::new();
+    }
+
+    public function onHighRisk(): Action|array
+    {
+        return [NotifyUserAction::new(), BlockLoginAction::new()];
+    }
+}
+```
+
+This preset uses the configured thresholds: medium risk starts at 40, high risk at 70. Checks add their scores when they flag a login; only the actions for the resulting risk level run. Put `BlockLoginAction` last because it ends the login request. You can [override the thresholds and customize the preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets), or [choose a different preset per login](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-choosing-a-preset-per-login).
 
 The package listens for Laravel's login events, so it works with Breeze, Jetstream, Fortify and your own session login controllers. Checks, actions and drivers are replaceable, and [events](/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/using-events) let you react to login attempts yourself.
 

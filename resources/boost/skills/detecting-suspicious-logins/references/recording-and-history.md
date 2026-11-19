@@ -48,7 +48,7 @@ $attempt->authenticatable()->associate($user);
 SuspiciousLogin::assess($attempt);
 ```
 
-`assess()` mutates and returns the supplied attempt, filling `risk_score`, `risk_level`, and `reasons`. It neither saves nor populates fingerprints/locations, dispatches events, or runs actions.
+`assess()` selects a preset using the same callback as recording, then mutates and returns the supplied attempt, filling `risk_score`, `risk_level`, and `reasons`. With `NonePreset`, those fields are set to null. It neither saves nor populates fingerprints/locations, dispatches events, or runs actions. An optional second `Preset` instance uses that preset instead of selecting one.
 
 ## Custom properties
 

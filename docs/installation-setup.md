@@ -22,7 +22,7 @@ This command:
 - Asks whether to run your application's pending migrations. If you decline, run `php artisan migrate` yourself before using the package.
 - Offers to star the repository on GitHub.
 
-Once the migration has run, the package listens for Laravel's auth events, records login attempts in `login_attempts`, and scores successful logins with the `Balanced` preset. It skips logins restored from a remember-me cookie.
+Once the migration has run, the package listens for Laravel's auth events, records login attempts in `login_attempts`, and scores successful logins with the `BalancedPreset` preset. It skips logins restored from a remember-me cookie.
 
 ## The config file
 
@@ -39,10 +39,11 @@ return [
     /*
      * The preset decides which checks run, how their scores map to a risk
      * level and which actions run for each risk level. The package ships
-     * with Lenient, Balanced, Strict and MonitorOnly. Extend one of them,
-     * or Spatie\SuspiciousLogin\Presets\Preset, to build your own.
+     * with LenientPreset, BalancedPreset, StrictPreset, MonitorOnlyPreset
+     * and NonePreset. Extend a preset to build your own. Use
+     * SuspiciousLogin::determinePresetUsing() to choose per login.
      */
-    'preset' => Spatie\SuspiciousLogin\Presets\Balanced::class,
+    'preset' => Spatie\SuspiciousLogin\Presets\BalancedPreset::class,
 
     /*
      * The scores at which medium and high risk start. Presets can override

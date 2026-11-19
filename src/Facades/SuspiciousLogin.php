@@ -14,10 +14,11 @@ use Spatie\SuspiciousLogin\SuspiciousLogin as SuspiciousLoginService;
 
 /**
  * @method static void addPropertiesUsing(Closure $callback)
- * @method static Preset preset()
+ * @method static void determinePresetUsing(Closure $callback)
+ * @method static Preset preset(?LoginAttempt $attempt = null)
  * @method static LoginAttempt recordSuccessfulLogin(Authenticatable $user, ?string $guard = null, ?Request $request = null, array $properties = [])
  * @method static LoginAttempt recordFailedLogin(?Authenticatable $user, ?string $identifier = null, ?string $guard = null, ?Request $request = null, array $properties = [])
- * @method static LoginAttempt assess(LoginAttempt $attempt)
+ * @method static LoginAttempt assess(LoginAttempt $attempt, ?Preset $preset = null)
  * @method static ?Location locate(string $ip)
  * @method static IpReputation ipReputation(string $ip)
  *

@@ -17,7 +17,7 @@
 
 A login with the correct password can still come from an attacker. This package looks at everything around that login (the device, the IP address, where it comes from, how many attempts failed before it) and gives it a risk score. Depending on the score, it can notify the user, block the login, or do whatever you want.
 
-Here's how a login from a new laptop in New York, to an account that always logs in from Antwerp, is scored with the default `Balanced` preset and geolocation configured:
+Here's how a login from a new laptop in New York, to an account that always logs in from Antwerp, is scored with the default `BalancedPreset` and geolocation configured:
 
 ```
 Login from a new device                  +25
@@ -27,7 +27,7 @@ Login from a new country (US)            +30
 Risk score                                65  → medium risk, the user gets an email
 ```
 
-A preset lists the checks to run, how much each weighs, and which actions run at each risk level. It can also override the default risk thresholds from the config file. The package ships with `Lenient`, `Balanced`, `Strict` and `MonitorOnly` presets, and writing your own takes a few lines:
+A preset lists the checks to run, how much each weighs, and which actions run at each risk level. It can also override the default risk thresholds from the config file. The package ships with `LenientPreset`, `BalancedPreset`, `StrictPreset`, `MonitorOnlyPreset` and `NonePreset`, and writing your own takes a few lines:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -78,7 +78,32 @@ The default risk thresholds live in `config/suspicious-login.php`:
 ],
 ```
 
-Optionally define `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold` in your preset to override either config value. `Balanced` and `MonitorOnly` use the configured defaults; `Strict` defines 30/60 and `Lenient` defines 50/80.
+Optionally define `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold` in your preset to override either config value. `BalancedPreset` and `MonitorOnlyPreset` use the configured defaults; `StrictPreset` defines 30/60 and `LenientPreset` defines 50/80.
+
+To choose a preset per login, register a callback in a service provider's `boot()` method. For example, apply stricter checks to admins and skip assessment for exempt users:
+
+```php
+use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+use Spatie\SuspiciousLogin\Presets\NonePreset;
+use Spatie\SuspiciousLogin\Presets\StrictPreset;
+
+SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
+    $user = $attempt->authenticatable;
+
+    if ($user->is_admin) {
+        return StrictPreset::class;
+    }
+
+    if ($user->skip_login_checks) {
+        return NonePreset::class;
+    }
+
+    return config('suspicious-login.preset');
+});
+```
+
+The user attributes above are application-specific. The callback receives the attempt before location lookups, with its user, guard and custom properties available. Return a preset class name, never `null`. `NonePreset` still records the login and fires `LoginAttemptRecordedEvent`, but skips location lookups, scoring and actions. Unlike `MonitorOnlyPreset`, it leaves the risk score and level unset. See [choosing a preset per login](https://spatie.be/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-choosing-a-preset-per-login).
 
 Only the actions for the matching level run. List `BlockLoginAction` last because it logs the user out of their session guard and throws a validation exception.
 
@@ -161,13 +186,13 @@ It publishes `config/suspicious-login.php` and the migration for the `login_atte
 
 That's it. The package listens for Laravel's `Login` and `Failed` auth events, so it works with Breeze, Jetstream, Fortify and your own login controllers without changes. Logins restored from a "remember me" cookie are not recorded.
 
-Out of the box the `Balanced` preset is used, and the `ipinfo` driver looks up public IP addresses without requiring an API token. Lookups are cached for a week and subject to ipinfo's limits. You can choose another [geolocation driver](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) in `config/suspicious-login.php`, or set it to `'null'` to disable lookups and avoid sending IP addresses to an external service.
+Out of the box `BalancedPreset` is used, and the `ipinfo` driver looks up public IP addresses without requiring an API token. Lookups are cached for a week and subject to ipinfo's limits. You can choose another [geolocation driver](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) in `config/suspicious-login.php`, or set it to `'null'` to disable lookups and avoid sending IP addresses to an external service.
 
 The default notification requires Laravel's `Notifiable` trait on your user model and working mail configuration. It is queued, so run a queue worker unless you use the `sync` queue connection.
 
 You can [publish the email's Markdown view](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#content-customizing-the-email-view) to change its content or layout without replacing the notification.
 
-For an existing application, consider starting with `Spatie\SuspiciousLogin\Presets\MonitorOnly`. It records scores and fires events without notifying or blocking users, so you can review the results before enabling actions.
+For an existing application, consider starting with `Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset`. It records scores and fires events without notifying or blocking users, so you can review the results before enabling actions.
 
 ## Documentation
 

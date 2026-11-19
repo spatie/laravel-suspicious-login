@@ -23,19 +23,20 @@ composer require spatie/laravel-suspicious-login
 php artisan suspicious-login:install
 ```
 
-The install command publishes config and migrations and offers to run migrations. On an existing app, start with `'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnly::class` to observe scores without preset actions. Events still fire. For notifications, the user needs `Notifiable`, configured mail, and a queue worker unless the queue connection is `sync`.
+The install command publishes config and migrations and offers to run migrations. On an existing app, start with `'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset::class` to observe scores without preset actions. Events still fire. For notifications, the user needs `Notifiable`, configured mail, and a queue worker unless the queue connection is `sync`.
 
 Configure behavior in `config/suspicious-login.php`; use direct config values for driver selection, enabled state, and database paths. Keep secrets such as API tokens in environment-backed config values. Geolocation defaults to `ipinfo`, which sends public IPs to ipinfo.io without a token, subject to its request limits. IP reputation defaults to `null`. Read [drivers and customization](references/drivers-and-customization.md) for credentials, caching, custom implementations, and proxy requirements.
 
 ## Presets and risk levels
 
 - Configure a preset class with `suspicious-login.preset`. Extend `Preset`, or extend a built-in preset and append to `parent::checks()`.
-- `Balanced` notifies at medium and high risk; `Lenient` only notifies at high risk; `Strict` notifies at both levels and blocks high-risk session logins; `MonitorOnly` runs the Balanced checks without actions.
-- The default config thresholds are medium 40 and high 70. `Balanced` and `MonitorOnly` inherit them. `Strict` overrides them with 30/60 and `Lenient` with 50/80. A custom preset may define either `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold`; omitted values come from config.
+- All preset class names end in `Preset`. `BalancedPreset` notifies at medium and high risk; `LenientPreset` only notifies at high risk; `StrictPreset` notifies at both levels and blocks high-risk session logins; `MonitorOnlyPreset` runs the BalancedPreset checks without actions.
+- `NonePreset` records successful logins without location lookups, checks or actions. Score, level and reasons remain null, and only `LoginAttemptRecordedEvent` fires. Successful unblocked attempts still count as trusted history. Do not substitute an empty custom preset: that still performs location lookups and assigns a risk level.
+- The default config thresholds are medium 40 and high 70. `BalancedPreset` and `MonitorOnlyPreset` inherit them. `StrictPreset` overrides them with 30/60 and `LenientPreset` with 50/80. A custom preset may define either `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold`; omitted values come from config.
 - Return checks from `checks(): array`. `Check::new()` resolves through the container, and `score()` sets the points added when that check flags a login. Scores are points, not probabilities; the total is capped at 100.
 - `onMediumRisk(): Action|array` and `onHighRisk(): Action|array` are optional and default to no actions. Return one action or an array. High risk only runs the high-risk actions, not the medium-risk actions too. Low risk runs none.
 
-For example, place this preset in `app/SuspiciousLogin/DetectSuspiciousLogins.php`:
+For example, place this preset in `app/SuspiciousLogin/DetectSuspiciousLoginsPreset.php`:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -47,7 +48,7 @@ use Spatie\SuspiciousLogin\Checks\MultipleCountriesCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
 use Spatie\SuspiciousLogin\Presets\Preset;
 
-class DetectSuspiciousLogins extends Preset
+class DetectSuspiciousLoginsPreset extends Preset
 {
     public function checks(): array
     {
@@ -72,8 +73,33 @@ class DetectSuspiciousLogins extends Preset
 Register it in `config/suspicious-login.php`:
 
 ```php
-'preset' => App\SuspiciousLogin\DetectSuspiciousLogins::class,
+'preset' => App\SuspiciousLogin\DetectSuspiciousLoginsPreset::class,
 ```
+
+## Select a preset per login
+
+Register `SuspiciousLogin::determinePresetUsing()` in a service provider's `boot()` method. The callback receives an unsaved `LoginAttempt` with its user relation, guard and custom properties, before location lookup, and returns a preset class name, never null. Resolve per-login state inside the callback rather than capturing a request or user at registration time.
+
+```php
+use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+use Spatie\SuspiciousLogin\Presets\NonePreset;
+use Spatie\SuspiciousLogin\Presets\StrictPreset;
+
+SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
+    if ($attempt->authenticatable?->is_admin) {
+        return StrictPreset::class;
+    }
+
+    if ($attempt->getProperty('skip_checks')) {
+        return NonePreset::class;
+    }
+
+    return config('suspicious-login.preset');
+});
+```
+
+The user attribute and property above are application-defined. The same resolved preset instance supplies checks and actions. The callback applies to automatic and manual successful recordings and `assess()`, not failed recordings. Without a callback, config selects the preset. `SuspiciousLogin::preset()` returns the configured preset; pass an attempt to apply the callback.
 
 ## Checks and actions
 

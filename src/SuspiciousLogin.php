@@ -17,12 +17,16 @@ use Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent;
 use Spatie\SuspiciousLogin\Fingerprinters\DeviceFingerprinter;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
+use Spatie\SuspiciousLogin\Presets\NonePreset;
 use Spatie\SuspiciousLogin\Presets\Preset;
 
 class SuspiciousLogin
 {
     /** @var ?Closure(Request, ?Authenticatable): array<string, mixed> */
     protected ?Closure $propertiesResolver = null;
+
+    /** @var ?Closure(LoginAttempt): class-string<Preset> */
+    protected ?Closure $presetResolver = null;
 
     public function __construct(
         protected GeolocationManager $geolocation,
@@ -41,8 +45,18 @@ class SuspiciousLogin
         $this->propertiesResolver = $callback;
     }
 
-    public function preset(): Preset
+    /** @param Closure(LoginAttempt): class-string<Preset> $callback */
+    public function determinePresetUsing(Closure $callback): void
     {
+        $this->presetResolver = $callback;
+    }
+
+    public function preset(?LoginAttempt $attempt = null): Preset
+    {
+        if ($attempt && $this->presetResolver) {
+            return app(($this->presetResolver)($attempt));
+        }
+
         return app(config('suspicious-login.preset'));
     }
 
@@ -62,16 +76,20 @@ class SuspiciousLogin
 
         $attempt = $this->newAttempt($request, $user, $guard, successful: true, properties: $properties);
 
-        if ($location = $this->locate((string) $request->ip())) {
-            $attempt->fill([
-                'country_code' => $location->countryCode,
-                'city' => $location->city,
-                'latitude' => $location->latitude,
-                'longitude' => $location->longitude,
-            ]);
+        $preset = $this->preset($attempt);
+
+        if (! $preset instanceof NonePreset) {
+            if ($location = $this->locate((string) $request->ip())) {
+                $attempt->fill([
+                    'country_code' => $location->countryCode,
+                    'city' => $location->city,
+                    'latitude' => $location->latitude,
+                    'longitude' => $location->longitude,
+                ]);
+            }
         }
 
-        $this->assess($attempt)->save();
+        $this->assess($attempt, $preset)->save();
 
         event(new LoginAttemptRecordedEvent($attempt));
 
@@ -81,7 +99,7 @@ class SuspiciousLogin
 
         event(new SuspiciousLoginDetectedEvent($attempt));
 
-        foreach ($this->preset()->actions($attempt->risk_level) as $action) {
+        foreach ($preset->actions($attempt->risk_level) as $action) {
             $action->execute($attempt);
         }
 
@@ -110,10 +128,19 @@ class SuspiciousLogin
     /**
      * Fills the attempt's risk score, risk level and reasons without saving it,
      * dispatching events or running actions. The total score is capped at 100.
+     * NonePreset leaves these fields unset instead of assigning a risk level.
      */
-    public function assess(LoginAttempt $attempt): LoginAttempt
+    public function assess(LoginAttempt $attempt, ?Preset $preset = null): LoginAttempt
     {
-        $preset = $this->preset();
+        $preset ??= $this->preset($attempt);
+
+        if ($preset instanceof NonePreset) {
+            return $attempt->fill([
+                'risk_score' => null,
+                'risk_level' => null,
+                'reasons' => null,
+            ]);
+        }
 
         $flaggedResults = collect($preset->checks())
             ->map(fn (Check $check) => $check->evaluate($attempt))
