@@ -9,10 +9,16 @@ By default, `UserAgentFingerprinter` hashes the user agent with version numbers 
 
 ## Using a device cookie
 
-For web apps, `CookieFingerprinter` distinguishes browsers with identical user agents. Enable it in `config/suspicious-login.php`:
+For web apps, `CookieFingerprinter` distinguishes browsers with identical user agents. Import it at the top of `config/suspicious-login.php`:
 
 ```php
-'device_fingerprinter' => Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter::class,
+use Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter;
+```
+
+Then select it:
+
+```php
+'device_fingerprinter' => CookieFingerprinter::class,
 ```
 
 It creates a random `suspicious_login_device` cookie and stores its SHA-256 hash with each attempt. The cookie lasts 365 days, renewed on each login attempt. It is HTTP-only, uses `SameSite=Lax`, and is secure on HTTPS requests or when `session.secure` is enabled. Its path and domain follow Laravel's session cookie settings.
