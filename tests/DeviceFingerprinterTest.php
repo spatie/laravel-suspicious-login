@@ -7,19 +7,18 @@ use Illuminate\Support\Str;
 use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
-use Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter;
+use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 use Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset;
 
 beforeEach(function () {
-    config()->set('suspicious-login.device_fingerprinter', CookieFingerprinter::class);
     config()->set('suspicious-login.preset', MonitorOnlyPreset::class);
 
     $this->user = createUser();
 });
 
-it('recognizes a browser across updates and distinguishes another browser with the same user agent', function () {
+it('recognizes a browser across updates and distinguishes another browser with the same user agent by default', function () {
     URL::forceScheme('https');
     $this->freezeTime();
 
@@ -48,6 +47,25 @@ it('recognizes a browser across updates and distinguishes another browser with t
     $this->withUnencryptedCookie('suspicious_login_device', '');
 
     attemptLogin()->assertOk();
+
+    expect(latestAttempt()->device_fingerprint)->not->toBe($fingerprint)
+        ->and(latestAttempt()->risk_score)->toBe(25);
+});
+
+it('can explicitly use user agents without a device cookie', function () {
+    config()->set('suspicious-login.device_fingerprinter', UserAgentFingerprinter::class);
+
+    attemptLogin()->assertOk()->assertCookieMissing('suspicious_login_device');
+    $fingerprint = latestAttempt()->device_fingerprint;
+
+    attemptLogin(userAgent: str_replace('141.0.7390.54', '142.0.7444.12', CHROME_ON_MAC))
+        ->assertOk()
+        ->assertCookieMissing('suspicious_login_device');
+
+    expect(latestAttempt()->device_fingerprint)->toBe($fingerprint)
+        ->and(latestAttempt()->risk_score)->toBe(0);
+
+    attemptLogin(userAgent: FIREFOX_ON_WINDOWS)->assertOk();
 
     expect(latestAttempt()->device_fingerprint)->not->toBe($fingerprint)
         ->and(latestAttempt()->risk_score)->toBe(25);

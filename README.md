@@ -163,7 +163,7 @@ You can also add [`MultipleCountriesCheck`](https://spatie.be/docs/laravel-suspi
 
 Checks, actions, geolocation and IP reputation drivers, device fingerprints and the model are all swappable, and the package fires events you can listen for.
 
-The default device fingerprint groups browsers by user agent, ignoring version numbers. For web apps, opt into [cookie-based fingerprints](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/device-fingerprints#content-using-a-device-cookie) to distinguish browsers with identical user agents without JavaScript.
+Device fingerprints use an encrypted browser cookie by default, distinguishing browsers with identical user agents without JavaScript. Browser updates keep the same identity; clearing cookies creates a new one. Login routes need Laravel's `web` cookie middleware. For stateless apps, explicitly [use the user-agent fingerprinter or your own identifier](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/device-fingerprints#content-using-the-user-agent).
 
 ## Support us
 

@@ -1,6 +1,6 @@
 <?php
 
-use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter;
+use Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter;
 use Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Presets\DefaultPreset;
@@ -92,10 +92,10 @@ return [
     /*
      * The class that turns a request into a device fingerprint. It must implement
      * Spatie\SuspiciousLogin\Fingerprinters\DeviceFingerprinter.
-     * For cookie-based recognition on web routes, use
-     * Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter.
+     * The default requires Laravel's web cookie middleware. For stateless apps,
+     * use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter instead.
      */
-    'device_fingerprinter' => UserAgentFingerprinter::class,
+    'device_fingerprinter' => CookieFingerprinter::class,
 
     /*
      * The mailable that NotifyUserAction sends to the user's email address.

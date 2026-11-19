@@ -16,6 +16,7 @@ use Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginBlockedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
+use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter;
 use Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Presets\DefaultPreset;
@@ -24,6 +25,7 @@ use Spatie\SuspiciousLogin\Presets\NonePreset;
 
 beforeEach(function () {
     Mail::fake();
+    config()->set('suspicious-login.device_fingerprinter', UserAgentFingerprinter::class);
 
     $this->user = createUser();
 });

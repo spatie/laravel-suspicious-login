@@ -24,6 +24,8 @@ This command:
 
 Once the migration has run, the package listens for Laravel's auth events, records login attempts in `login_attempts`, and scores successful logins with `DefaultPreset`. It skips logins restored from a remember-me cookie.
 
+Device recognition uses an encrypted browser cookie by default. Login routes must use Laravel's `web` middleware group, including `EncryptCookies` and `AddQueuedCookiesToResponse`. For stateless apps, [choose the user-agent fingerprinter](/docs/laravel-suspicious-login/v1/advanced-usage/device-fingerprints#content-using-the-user-agent) instead.
+
 ## The config file
 
 This is the content of the published config file:
@@ -116,10 +118,10 @@ return [
     /*
      * The class that turns a request into a device fingerprint. It must implement
      * Spatie\SuspiciousLogin\Fingerprinters\DeviceFingerprinter.
-     * For cookie-based recognition on web routes, use
-     * Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter.
+     * The default requires Laravel's web cookie middleware. For stateless apps,
+     * use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter instead.
      */
-    'device_fingerprinter' => Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter::class,
+    'device_fingerprinter' => Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter::class,
 
     /*
      * The mailable that NotifyUserAction sends to the user's email address.
