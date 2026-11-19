@@ -45,27 +45,6 @@ SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
 
 `AdminPanelPreset` is a [custom preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#content-writing-your-own-preset); `is_admin` and `skip_login_checks` are example user attributes. Return a preset class name, using `NonePreset` to skip checks. The callback also applies to manual recording and `assess()`, but not failed logins.
 
-## Start with MonitorOnlyPreset
-
-For an app with existing users, set `MonitorOnlyPreset` in `config/suspicious-login.php` to collect scores without notifying or blocking anyone:
-
-```php
-'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset::class,
-```
-
-It still fires events, so any listeners you registered continue to run. Let it run for a week or two, then look at the scores your real users get:
-
-```php
-use Spatie\SuspiciousLogin\Models\LoginAttempt;
-
-LoginAttempt::query()
-    ->whereNot('risk_level', 'low')
-    ->latest()
-    ->get(['authenticatable_type', 'authenticatable_id', 'ip_address', 'country_code', 'risk_score', 'reasons']);
-```
-
-If people who travel a lot or use a VPN show up as high risk, [lower the weight of those checks](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) before switching to a preset that notifies or blocks.
-
 ## Checks in DefaultPreset
 
 `DefaultPreset` and `MonitorOnlyPreset` run the same checks:
