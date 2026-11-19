@@ -7,15 +7,6 @@ This example adds suspicious-login detection to a Laravel application with sessi
 
 The package listens to Laravel's authentication events. You don't need to change your login controller when it already uses Laravel's authentication system.
 
-## Install the package
-
-```bash
-composer require spatie/laravel-suspicious-login
-php artisan suspicious-login:install
-```
-
-The install command publishes `config/suspicious-login.php` and the migration for the `login_attempts` table. Accept its offer to run migrations, or run `php artisan migrate` yourself. See [installation and setup](/docs/laravel-suspicious-login/v1/installation-setup) for the complete config and manual publishing commands.
-
 ## Create a preset
 
 A preset chooses the checks to run, their scores, and the actions for medium and high risk. Create `app/SuspiciousLogin/ProtectLoginsPreset.php`:
