@@ -20,9 +20,9 @@ public function onHighRisk(): Action|array
 }
 ```
 
-The email lists the time, IP address, location and device of the login, together with the reasons it looked suspicious. It's a regular Laravel notification, so your user model needs the `Notifiable` trait. Users without a `notify()` method, and attempts whose user no longer exists, are skipped.
+The email lists the time, IP address, location and device of the login, together with the reasons it looked suspicious. The action sends a regular Laravel mailable to the user's `email` address. The `Notifiable` trait is not required. Users without an email address, and attempts whose user no longer exists, are skipped.
 
-The notification is queued, so make sure a queue worker is running. With the `sync` queue connection, it's sent right away.
+The default `Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail` implements `ShouldQueue`, so make sure mail is configured and a queue worker is running. With the `sync` queue connection, it's sent right away. Actions still run in preset order; sending an email does not mean the login was blocked.
 
 ## Customizing the email view
 
@@ -32,7 +32,7 @@ To change the email's content or layout, publish its Markdown view:
 php artisan vendor:publish --tag="suspicious-login-views"
 ```
 
-Edit `resources/views/vendor/suspicious-login/mail/suspicious-login.blade.php`. Laravel uses your published view instead of the package's view. You don't need to create a notification or change the config.
+Edit `resources/views/vendor/suspicious-login/mail/suspicious-login.blade.php`. Laravel uses your published view instead of the package's view. You don't need to create a mailable or change the config.
 
 The view receives:
 
@@ -43,71 +43,116 @@ The template uses Laravel's `<x-mail::message>` component and translation string
 
 ## Customizing the subject
 
-Publishing the view does not change the email's subject. To change only the subject, create `app/Notifications/SuspiciousLoginNotification.php`:
+Publishing the view does not change the email's subject. To change only the subject, create `app/Mail/SuspiciousLoginMail.php`:
 
 ```php
-namespace App\Notifications;
+namespace App\Mail;
 
-use Illuminate\Notifications\Messages\MailMessage;
-use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification as BaseNotification;
+use Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail as BaseMail;
 
-class SuspiciousLoginNotification extends BaseNotification
+class SuspiciousLoginMail extends BaseMail
 {
-    public function toMail(object $notifiable): MailMessage
+    public function build(): static
     {
-        return parent::toMail($notifiable)->subject('Was this you?');
+        return parent::build()->subject('Was this you?');
     }
 }
 ```
 
-Select your notification in `config/suspicious-login.php`:
+Select your mailable in `config/suspicious-login.php`:
 
 ```php
-'notification' => App\Notifications\SuspiciousLoginNotification::class,
+'mailable' => App\Mail\SuspiciousLoginMail::class,
 ```
 
 This keeps the default content, published view and queue behavior.
 
-## Using your own notification
+## Using your own mailable
 
-For more control over the email, or to notify through Slack, SMS or any other channel, create your own notification. It receives the `LoginAttempt` in its constructor:
+You can also use any Laravel mailable that accepts a `LoginAttempt` in its constructor. For example, create `app/Mail/LoginAlertMail.php`:
 
 ```php
-namespace App\Notifications;
+namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
+use Illuminate\Mail\Mailable;
+use Illuminate\Queue\SerializesModels;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 
-class SuspiciousLoginNotification extends Notification implements ShouldQueue
+class LoginAlertMail extends Mailable implements ShouldQueue
 {
     use Queueable;
+    use SerializesModels;
 
     public function __construct(
         public LoginAttempt $loginAttempt,
     ) {}
 
-    public function via(object $notifiable): array
+    public function build(): static
     {
-        return ['mail'];
-    }
-
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
+        return $this
             ->subject('Was this you?')
-            ->line("Someone logged in to your account from {$this->loginAttempt->ip_address}.")
-            ->action('Review your recent logins', route('account.logins'));
+            ->markdown('mail.login-alert');
     }
 }
+```
+
+Create its view at `resources/views/mail/login-alert.blade.php`. Public properties on the mailable are available in the view:
+
+```blade
+<x-mail::message>
+# Was this you?
+
+Someone logged in to your account from {{ $loginAttempt->ip_address }}.
+
+If this wasn't you, change your password right away.
+</x-mail::message>
 ```
 
 Then register it in `config/suspicious-login.php`:
 
 ```php
-'notification' => App\Notifications\SuspiciousLoginNotification::class,
+'mailable' => App\Mail\LoginAlertMail::class,
 ```
 
-The example's `account.logins` route must exist in your application and show only the authenticated user's activity. See [working with login attempts](/docs/laravel-suspicious-login/v1/basic-usage/working-with-login-attempts) for a user-scoped query. For Slack or SMS, install and configure the Laravel notification channel you choose; the package only supplies the mail notification.
+The action uses `Mail::send()`, which Laravel queues when the mailable implements `ShouldQueue`. Omit that interface for synchronous delivery. Configure queue names, connections and retries on your mailable rather than in the package config.
+
+## Using Laravel notifications instead
+
+To use your application's notification, create a custom action. For example, if `App\Notifications\LoginAlertNotification` accepts a `LoginAttempt` in its constructor, create `app/SuspiciousLogin/Actions/SendLoginNotificationAction.php`:
+
+```php
+namespace App\SuspiciousLogin\Actions;
+
+use App\Notifications\LoginAlertNotification;
+use Spatie\SuspiciousLogin\Actions\Action;
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+
+class SendLoginNotificationAction extends Action
+{
+    public function execute(LoginAttempt $attempt): void
+    {
+        $attempt->authenticatable?->notify(new LoginAlertNotification($attempt));
+    }
+}
+```
+
+Use that action instead of `NotifyUserAction` in your preset:
+
+```php
+use App\SuspiciousLogin\Actions\SendLoginNotificationAction;
+use Spatie\SuspiciousLogin\Actions\Action;
+
+public function onMediumRisk(): Action|array
+{
+    return SendLoginNotificationAction::new();
+}
+
+public function onHighRisk(): Action|array
+{
+    return SendLoginNotificationAction::new();
+}
+```
+
+Your user model needs Laravel's `Notifiable` trait for this custom action. Define the channels, routing and queue behavior on your notification. For Slack or SMS, install and configure the channel you choose. The package's `mailable` config only affects `NotifyUserAction`, not your custom notification action.

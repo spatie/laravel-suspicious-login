@@ -26,7 +26,7 @@ Use `$attempt->history()->trusted()` for known devices and locations. `history()
 
 ## Built-in and custom actions
 
-`NotifyUserAction::new()` sends the configured notification to `$attempt->authenticatable`. It skips deleted users and users without `notify()`.
+`NotifyUserAction::new()` sends the configured mailable to `$attempt->authenticatable->email`. It skips deleted users and users without an email address. `Notifiable` is not required.
 
 `BlockLoginAction::new()->errorKey('email')->message('...')` marks the saved attempt blocked, dispatches `SuspiciousLoginBlockedEvent`, logs the user out of the recorded session guard, and throws a validation exception. Put it last because it ends the request. It is not suitable for logging out stateless guards or revoking API tokens.
 
@@ -34,9 +34,9 @@ To customize the rejection, extend `BlockLoginAction` and override `protected fu
 
 For another action, extend `Spatie\SuspiciousLogin\Actions\Action`, implement `public function execute(LoginAttempt $attempt): void`, and return `YourAction::new()` from the preset. Both checks and actions resolve `new()` through the container, allowing constructor injection. For queued webhooks or MFA, implement the application-specific delivery or challenge; the package has neither built in.
 
-## Customize notifications
+## Customize email and notifications
 
-The default `Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification` implements `ShouldQueue` and uses the mail channel. It receives `LoginAttempt` in its constructor. In `config/suspicious-login.php`, set `'notification' => App\Notifications\SuspiciousLoginNotification::class` to use an application notification. Extend the default notification to reuse behavior, or implement a Laravel notification for Slack, SMS, or other channels. Queue selection and retry behavior belong on the notification, not additional package config keys.
+The default `Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail` implements `ShouldQueue`. It receives `LoginAttempt` in its constructor. In `config/suspicious-login.php`, set `'mailable' => App\Mail\LoginAlertMail::class` to use any application mailable accepting that constructor argument. Extend the default mailable to reuse its content or use a standalone Laravel mailable. The action uses `Mail::to($user->email)->send($mailable)`, which Laravel queues when it implements `ShouldQueue`. Queue selection and retry behavior belong on the mailable, not additional package config keys.
 
 To change only the content or layout:
 
@@ -44,9 +44,11 @@ To change only the content or layout:
 php artisan vendor:publish --tag="suspicious-login-views"
 ```
 
-Edit `resources/views/vendor/suspicious-login/mail/suspicious-login.blade.php`. It uses Laravel's Markdown mail components and receives `$loginAttempt` and `$place` (city and country, or translated `Unknown`). Escape user agents and reasons with Blade's escaped output. Override `toMail()` in a notification subclass to change the subject, for example `return parent::toMail($notifiable)->subject('Unusual sign-in');`.
+Edit `resources/views/vendor/suspicious-login/mail/suspicious-login.blade.php`. It uses Laravel's Markdown mail components and receives `$loginAttempt` and `$place` (city and country, or translated `Unknown`). Escape user agents and reasons with Blade's escaped output. Override `build(): static` in a mailable subclass to change the subject, for example `return parent::build()->subject('Unusual sign-in');`.
 
-Do not claim a login was blocked merely because this notification is sent: the preset may only notify, or a synchronous notification may run before the blocking action. Add account-security buttons only for routes the application actually provides.
+To use Laravel notifications, create an application-owned action whose `execute(LoginAttempt $attempt): void` calls `$attempt->authenticatable?->notify(new LoginAlertNotification($attempt))`. Use that action instead of `NotifyUserAction` in the preset. This custom action requires a user with `Notifiable`; the application supplies the notification and its channel, routing and queue configuration. The `mailable` config does not select notifications.
+
+Do not claim a login was blocked merely because this email is sent: the preset may only notify, or a synchronous email may run before the blocking action. Add account-security buttons only for routes the application actually provides.
 
 ## Events
 

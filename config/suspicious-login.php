@@ -1,8 +1,8 @@
 <?php
 
 use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter;
+use Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
-use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification;
 use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 
 return [
@@ -96,9 +96,10 @@ return [
     'device_fingerprinter' => UserAgentFingerprinter::class,
 
     /*
-     * The notification that NotifyUserAction sends to the user.
+     * The mailable that NotifyUserAction sends to the user's email address.
+     * It receives the LoginAttempt in its constructor.
      */
-    'notification' => SuspiciousLoginNotification::class,
+    'mailable' => SuspiciousLoginMail::class,
 
     /*
      * Login attempts older than this many days are deleted when you run

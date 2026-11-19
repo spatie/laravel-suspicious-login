@@ -2,24 +2,21 @@
 
 namespace Spatie\SuspiciousLogin\Actions;
 
+use Illuminate\Support\Facades\Mail;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 
 class NotifyUserAction extends Action
 {
     public function execute(LoginAttempt $attempt): void
     {
-        $user = $attempt->authenticatable;
+        $email = $attempt->authenticatable?->getAttribute('email');
 
-        if (! $user) {
+        if (! $email) {
             return;
         }
 
-        if (! method_exists($user, 'notify')) {
-            return;
-        }
+        $mailableClass = config('suspicious-login.mailable');
 
-        $notificationClass = config('suspicious-login.notification');
-
-        $user->notify(new $notificationClass($attempt));
+        Mail::to($email)->send(new $mailableClass($attempt));
     }
 }

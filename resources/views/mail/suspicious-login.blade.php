@@ -1,5 +1,5 @@
 <x-mail::message>
-# {{ $greeting ?: __('Suspicious login detected') }}
+# {{ __('Suspicious login detected') }}
 
 {{ __('We noticed a login to your account that looks unusual.') }}
 
@@ -20,10 +20,6 @@
 @endif
 {{ __('If this was you, you can ignore this email. If it wasn\'t, change your password right away.') }}
 
-@if($salutation)
-{{ $salutation }}
-@else
 {{ __('Regards,') }}<br>
 {{ config('app.name') }}
-@endif
 </x-mail::message>

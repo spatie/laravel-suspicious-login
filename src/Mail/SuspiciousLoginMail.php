@@ -1,28 +1,23 @@
 <?php
 
-namespace Spatie\SuspiciousLogin\Notifications;
+namespace Spatie\SuspiciousLogin\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
+use Illuminate\Mail\Mailable;
+use Illuminate\Queue\SerializesModels;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 
-class SuspiciousLoginNotification extends Notification implements ShouldQueue
+class SuspiciousLoginMail extends Mailable implements ShouldQueue
 {
     use Queueable;
+    use SerializesModels;
 
     public function __construct(
         public LoginAttempt $loginAttempt,
     ) {}
 
-    /** @return array<int, string> */
-    public function via(object $notifiable): array
-    {
-        return ['mail'];
-    }
-
-    public function toMail(object $notifiable): MailMessage
+    public function build(): static
     {
         $attempt = $this->loginAttempt;
 
@@ -32,7 +27,7 @@ class SuspiciousLoginNotification extends Notification implements ShouldQueue
             ? collect([$location->city, $location->countryCode])->filter()->implode(', ')
             : __('Unknown');
 
-        return (new MailMessage)
+        return $this
             ->subject(__('Suspicious login to your :app account', ['app' => config('app.name')]))
             ->markdown('suspicious-login::mail.suspicious-login', [
                 'loginAttempt' => $attempt,

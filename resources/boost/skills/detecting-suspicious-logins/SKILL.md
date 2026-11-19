@@ -23,7 +23,7 @@ composer require spatie/laravel-suspicious-login
 php artisan suspicious-login:install
 ```
 
-The install command publishes config and migrations and offers to run migrations. On an existing app, start with `'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset::class` to observe scores without preset actions. Events still fire. For notifications, the user needs `Notifiable`, configured mail, and a queue worker unless the queue connection is `sync`.
+The install command publishes config and migrations and offers to run migrations. On an existing app, start with `'preset' => Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset::class` to observe scores without preset actions. Events still fire. The default email needs a user email address, configured mail, and a queue worker unless the queue connection is `sync`; it does not require `Notifiable`.
 
 Configure behavior in `config/suspicious-login.php`; use direct config values for driver selection, enabled state, and database paths. Keep secrets such as API tokens in environment-backed config values. Geolocation defaults to `ipinfo`, which sends public IPs to ipinfo.io without a token, subject to its request limits. IP reputation defaults to `null`. Read [drivers and customization](references/drivers-and-customization.md) for credentials, caching, custom implementations, and proxy requirements.
 
@@ -103,7 +103,7 @@ The user attribute and property above are application-defined. The same resolved
 
 ## Checks and actions
 
-Read [checks and actions](references/checks-and-actions.md) before choosing checks, changing their options, writing a custom check or action, or overriding the blocked-login response. It lists all built-in checks and their defaults, and explains notification customization and events.
+Read [checks and actions](references/checks-and-actions.md) before choosing checks, changing their options, writing a custom check or action, or overriding the blocked-login response. It lists all built-in checks and their defaults, and explains mailable customization, custom notifications and events.
 
 Choose scores with overlapping signals in mind. A country change can trigger new-country, multiple-countries, and impossible-travel checks together. VPNs and legitimate travel can trigger country checks.
 

@@ -188,9 +188,9 @@ That's it. The package listens for Laravel's `Login` and `Failed` auth events, s
 
 Out of the box `DefaultPreset` is used, and the `ipinfo` driver looks up public IP addresses without requiring an API token. Lookups are cached for a week and subject to ipinfo's limits. You can choose another [geolocation driver](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/geolocation-drivers) in `config/suspicious-login.php`, or set it to `'null'` to disable lookups and avoid sending IP addresses to an external service.
 
-The default notification requires Laravel's `Notifiable` trait on your user model and working mail configuration. It is queued, so run a queue worker unless you use the `sync` queue connection.
+The default mailable is sent to the user's `email` address and requires working mail configuration, not the `Notifiable` trait. It is queued, so run a queue worker unless you use the `sync` queue connection. Set `mailable` in `config/suspicious-login.php` to use your own mailable class.
 
-You can [publish the email's Markdown view](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#content-customizing-the-email-view) to change its content or layout without replacing the notification.
+You can [publish the email's Markdown view](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#content-customizing-the-email-view) to change its content or layout without replacing the mailable. Prefer Laravel notifications? [Use a custom action](https://spatie.be/docs/laravel-suspicious-login/v1/responding-to-suspicious-logins/notifying-users#content-using-laravel-notifications-instead).
 
 For an existing application, consider starting with `Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset`. It records scores and fires events without notifying or blocking users, so you can review the results before enabling actions.
 

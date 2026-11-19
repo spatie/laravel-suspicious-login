@@ -23,7 +23,7 @@ use Spatie\SuspiciousLogin\Presets\Preset;
 
 class MyPreset extends Preset
 {
-    // Optional: omit these to use the thresholds from config/suspicious-login.php.
+    // Optional: defaults come from config/suspicious-login.php.
     protected int $mediumRiskThreshold = 40;
 
     protected int $highRiskThreshold = 70;

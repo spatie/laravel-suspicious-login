@@ -120,9 +120,10 @@ return [
     'device_fingerprinter' => Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter::class,
 
     /*
-     * The notification that NotifyUserAction sends to the user.
+     * The mailable that NotifyUserAction sends to the user's email address.
+     * It receives the LoginAttempt in its constructor.
      */
-    'notification' => Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification::class,
+    'mailable' => Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail::class,
 
     /*
      * Login attempts older than this many days are deleted when you run

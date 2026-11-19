@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Checks\Check;
 use Spatie\SuspiciousLogin\Checks\CheckResult;
@@ -74,7 +74,7 @@ it('allows a configured threshold of zero', function () {
 });
 
 it('uses a custom preset with custom checks and actions', function () {
-    Notification::fake();
+    Mail::fake();
 
     config()->set('suspicious-login.preset', BlockLoginsFromNorthKoreaPreset::class);
 

@@ -4,7 +4,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Spatie\SuspiciousLogin\Actions\Action;
 use Spatie\SuspiciousLogin\Actions\BlockLoginAction;
 use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
@@ -16,14 +16,14 @@ use Spatie\SuspiciousLogin\Events\LoginAttemptRecordedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginBlockedEvent;
 use Spatie\SuspiciousLogin\Events\SuspiciousLoginDetectedEvent;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
+use Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
-use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification;
 use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 use Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset;
 use Spatie\SuspiciousLogin\Presets\NonePreset;
 
 beforeEach(function () {
-    Notification::fake();
+    Mail::fake();
 
     $this->user = createUser();
 });
@@ -66,7 +66,7 @@ it('does not flag the first login of a user', function () {
     expect(latestAttempt()->reasons)->toHaveCount(1)
         ->and(latestAttempt()->reasons[0]['reason'])->toContain('automated client');
 
-    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
 });
 
 it('does not flag a login from a known device and ip', function () {
@@ -75,7 +75,7 @@ it('does not flag a login from a known device and ip', function () {
 
     expect(latestAttempt()->risk_score)->toBe(0);
 
-    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
 });
 
 it('fires an event for every recorded attempt, after a successful one is scored', function () {
@@ -121,12 +121,12 @@ it('notifies the user about a suspicious login with the default preset', functio
 
     Event::assertDispatched(SuspiciousLoginDetectedEvent::class, fn ($event) => $event->loginAttempt->is($attempt));
 
-    Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+    Mail::assertQueued(SuspiciousLoginMail::class, fn (SuspiciousLoginMail $mail) => $mail->hasTo($this->user->email) && $mail->loginAttempt->is($attempt));
 
     Event::assertNotDispatched(SuspiciousLoginBlockedEvent::class);
 });
 
-it('renders the login details and reasons in the notification email', function () {
+it('renders the login details and reasons in the email', function () {
     config()->set('app.name', 'My app');
 
     $attempt = new LoginAttempt([
@@ -140,8 +140,8 @@ it('renders the login details and reasons in the notification email', function (
         ],
     ]);
 
-    $mail = (new SuspiciousLoginNotification($attempt))->toMail($this->user);
-    $html = $mail->render()->toHtml();
+    $mail = new SuspiciousLoginMail($attempt);
+    $html = $mail->render();
 
     expect($mail->subject)->toBe('Suspicious login to your My app account')
         ->and(html_entity_decode(strip_tags($html)))
@@ -151,15 +151,15 @@ it('renders the login details and reasons in the notification email', function (
         ->not->toContain('<script>', '<b>device</b>');
 });
 
-it('renders the notification email without location, device or reasons', function () {
+it('renders the email without location, device or reasons', function () {
     $attempt = new LoginAttempt([
         'created_at' => '2026-11-18 19:30:00',
         'ip_address' => '81.82.83.84',
     ]);
 
-    $mail = (new SuspiciousLoginNotification($attempt))->toMail($this->user);
+    $mail = new SuspiciousLoginMail($attempt);
 
-    expect(html_entity_decode(strip_tags($mail->render()->toHtml())))
+    expect(html_entity_decode(strip_tags($mail->render())))
         ->toContain('Location: Unknown', 'Device: Unknown', 'change your password right away.')
         ->not->toContain('Why this login looks unusual');
 });
@@ -222,7 +222,7 @@ it('blocks a high risk login with a custom preset', function () {
 
     Event::assertDispatched(SuspiciousLoginBlockedEvent::class, fn ($event) => $event->loginAttempt->is($attempt) && $event->loginAttempt->blocked);
 
-    Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+    Mail::assertQueued(SuspiciousLoginMail::class, $this->user->email);
 });
 
 it('allows overriding the blocked login response without replacing the blocking behavior', function () {
@@ -267,7 +267,7 @@ it('takes no action with the monitor only preset', function () {
 
     expect(latestAttempt()->risk_level)->toBe(RiskLevel::Medium);
 
-    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
 });
 
 it('disables automatic recording without disabling explicit facade calls', function () {
@@ -354,7 +354,7 @@ it('assesses a login without saving it, firing events or running actions', funct
         ->and(LoginAttempt::count())->toBe(0);
 
     Event::assertNothingDispatched();
-    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
 });
 
 it('skips notifying a user that no longer exists', function () {
@@ -364,7 +364,33 @@ it('skips notifying a user that no longer exists', function () {
 
     NotifyUserAction::new()->execute($attempt->fresh());
 
-    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
+});
+
+it('uses the configured mailable for a suspicious login', function () {
+    config()->set('suspicious-login.mailable', CustomSuspiciousLoginMail::class);
+    config()->set('suspicious-login.preset', BlockingPreset::class);
+
+    attemptLogin(userAgent: 'curl/8.0')->assertOk();
+
+    Mail::assertQueued(CustomSuspiciousLoginMail::class, function (CustomSuspiciousLoginMail $mail) {
+        $mail->assertHasSubject('Was this you?');
+        $mail->assertSeeInHtml(latestAttempt()->ip_address);
+
+        return $mail->hasTo($this->user->email) && $mail->loginAttempt->is(latestAttempt());
+    });
+
+    Mail::assertOutgoingCount(1);
+});
+
+it('skips emailing a user without an email address', function () {
+    $attempt = new LoginAttempt;
+    $this->user->email = null;
+    $attempt->authenticatable()->associate($this->user);
+
+    NotifyUserAction::new()->execute($attempt);
+
+    Mail::assertNothingOutgoing();
 });
 
 it('selects a preset per user for automatic logins', function () {
@@ -379,14 +405,14 @@ it('selects a preset per user for automatic logins', function () {
     expect(latestAttempt()->risk_score)->toBe(30)
         ->and(latestAttempt()->risk_level)->toBe(RiskLevel::Medium);
 
-    Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+    Mail::assertQueued(SuspiciousLoginMail::class, $this->user->email);
 
     attemptLogin(email: 'member@example.com', userAgent: 'curl/8.0')->assertOk();
 
     expect(latestAttempt()->risk_score)->toBe(20)
         ->and(latestAttempt()->risk_level)->toBe(RiskLevel::Low);
 
-    Notification::assertCount(1);
+    Mail::assertOutgoingCount(1);
 });
 
 it('uses the selected preset for actions even after the attempt is saved', function () {
@@ -398,7 +424,7 @@ it('uses the selected preset for actions even after the attempt is saved', funct
 
     expect(latestAttempt()->risk_level)->toBe(RiskLevel::Medium);
 
-    Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+    Mail::assertQueued(SuspiciousLoginMail::class, $this->user->email);
 });
 
 it('records without assessment or lookups with the none preset', function (bool $useResolver) {
@@ -431,7 +457,7 @@ it('records without assessment or lookups with the none preset', function (bool 
         ->and(latestAttempt()->isSuspicious())->toBeFalse();
 
     Http::assertNothingSent();
-    Notification::assertNothingSent();
+    Mail::assertNothingOutgoing();
     Event::assertDispatched(LoginAttemptRecordedEvent::class, fn ($event) => $event->loginAttempt->is(latestAttempt()));
     Event::assertNotDispatched(SuspiciousLoginDetectedEvent::class);
 })->with([true, false]);
@@ -471,6 +497,14 @@ it('records failed attempts without selecting a preset', function () {
     expect(latestAttempt()->successful)->toBeFalse()
         ->and(latestAttempt()->risk_level)->toBeNull();
 });
+
+class CustomSuspiciousLoginMail extends SuspiciousLoginMail
+{
+    public function build(): static
+    {
+        return parent::build()->subject('Was this you?');
+    }
+}
 
 class BlockingPreset extends DefaultPreset
 {
