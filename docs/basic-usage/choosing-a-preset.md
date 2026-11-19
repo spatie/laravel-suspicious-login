@@ -25,6 +25,7 @@ Register a callback in your service provider's `boot()` method to choose a prese
 use App\SuspiciousLogin\AdminPanelPreset;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 use Spatie\SuspiciousLogin\Presets\NonePreset;
 
 SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
@@ -38,13 +39,11 @@ SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
         return NonePreset::class;
     }
 
-    return config('suspicious-login.preset');
+    return DefaultPreset::class;
 });
 ```
 
-`AdminPanelPreset` is an application-owned preset; see [writing your own preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#content-writing-your-own-preset) for its implementation. `is_admin` and `skip_login_checks` are example attributes on your application's user model. The callback receives the unsaved attempt with its user, guard, IP address, user agent and custom properties, before any location lookup. Return a preset class name, not `null`. It is resolved through Laravel's container once per successful login, and the same instance supplies both checks and actions. Without a callback, every successful login uses the configured preset.
-
-The callback also applies to manual recording and `assess()`. Failed logins are still recorded without selecting a preset. With `NonePreset`, `LoginAttemptRecordedEvent` still fires, but `SuspiciousLoginDetectedEvent` does not. Unlike `MonitorOnlyPreset`, it does not calculate a risk score. Successful, unblocked logins recorded with `NonePreset` still count as trusted history for future checks.
+`AdminPanelPreset` is a [custom preset](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets#content-writing-your-own-preset); `is_admin` and `skip_login_checks` are example user attributes. Return a preset class name, using `NonePreset` to skip checks. The callback also applies to manual recording and `assess()`, but not failed logins.
 
 ## The same login, three presets
 
