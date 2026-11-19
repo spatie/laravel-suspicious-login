@@ -7,8 +7,6 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Spatie\SuspiciousLogin\Checks\Check;
-use Spatie\SuspiciousLogin\Checks\CheckResult;
 use Spatie\SuspiciousLogin\Drivers\Geolocation\GeolocationManager;
 use Spatie\SuspiciousLogin\Drivers\Geolocation\Location;
 use Spatie\SuspiciousLogin\Drivers\IpReputation\IpReputation;
@@ -142,22 +140,29 @@ class SuspiciousLogin
             ]);
         }
 
-        $flaggedResults = collect($preset->checks())
-            ->map(fn (Check $check) => $check->evaluate($attempt))
-            ->filter(fn (CheckResult $result) => $result->suspicious)
-            ->values();
+        $score = 0;
+        $reasons = [];
 
-        $score = min($flaggedResults->sum('score'), 100);
+        foreach ($preset->checks() as $check) {
+            $result = $check->evaluate($attempt);
 
-        $attempt->risk_score = $score;
-        $attempt->risk_level = $preset->riskLevel($score);
-        $attempt->reasons = $flaggedResults
-            ->map(fn (CheckResult $result) => [
+            if (! $result->suspicious) {
+                continue;
+            }
+
+            $score += $result->score;
+            $reasons[] = [
                 'check' => $result->check,
                 'score' => $result->score,
                 'reason' => $result->reason,
-            ])
-            ->all();
+            ];
+        }
+
+        $score = min($score, 100);
+
+        $attempt->risk_score = $score;
+        $attempt->risk_level = $preset->riskLevel($score);
+        $attempt->reasons = $reasons;
 
         return $attempt;
     }

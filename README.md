@@ -88,6 +88,7 @@ To choose a preset per login, register a callback in a service provider's `boot(
 use App\SuspiciousLogin\MyPreset;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 use Spatie\SuspiciousLogin\Presets\NonePreset;
 
 SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
@@ -101,7 +102,7 @@ SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
         return NonePreset::class;
     }
 
-    return config('suspicious-login.preset');
+    return DefaultPreset::class;
 });
 ```
 

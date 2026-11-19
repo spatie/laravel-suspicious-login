@@ -3,7 +3,7 @@ title: Getting started
 weight: 0
 ---
 
-This example adds suspicious-login detection to a Laravel application with session-based authentication. We'll notify users when they log in from a new country, and block the login when the device is new too.
+After [installing the package](/docs/laravel-suspicious-login/v1/installation-setup), this example adds suspicious-login detection to a Laravel application with session-based authentication. We'll notify users when they log in from a new country, and block the login when the device is new too.
 
 The package listens to Laravel's authentication events. You don't need to change your login controller when it already uses Laravel's authentication system.
 
@@ -23,11 +23,6 @@ use Spatie\SuspiciousLogin\Presets\Preset;
 
 class MyPreset extends Preset
 {
-    // Optional: defaults come from config/suspicious-login.php.
-    protected int $mediumRiskThreshold = 40;
-
-    protected int $highRiskThreshold = 70;
-
     public function checks(): array
     {
         return [
@@ -51,7 +46,7 @@ class MyPreset extends Preset
 }
 ```
 
-Each check adds its score when it flags the login. `NotifyUserAction` sends the user an email; `BlockLoginAction` marks the attempt as blocked, logs the user out, and throws a validation exception. Put blocking last because it ends the request. High risk runs only `onHighRisk()`, not the medium-risk actions as well.
+Each check adds its score when it flags the login. The configured thresholds default to 40 for medium risk and 70 for high risk. `NotifyUserAction` sends the user an email; `BlockLoginAction` marks the attempt as blocked, logs the user out, and throws a validation exception. Put blocking last because it ends the request. High risk runs only `onHighRisk()`, not the medium-risk actions as well.
 
 You can also [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) instead of writing one. `DefaultPreset` notifies users without blocking them. See [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) for extending a built-in preset.
 
