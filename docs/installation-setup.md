@@ -116,6 +116,8 @@ return [
     /*
      * The class that turns a request into a device fingerprint. It must implement
      * Spatie\SuspiciousLogin\Fingerprinters\DeviceFingerprinter.
+     * For cookie-based recognition on web routes, use
+     * Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter.
      */
     'device_fingerprinter' => Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter::class,
 

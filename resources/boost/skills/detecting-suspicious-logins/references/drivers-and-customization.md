@@ -41,6 +41,8 @@ For a custom driver implement `Spatie\SuspiciousLogin\Drivers\IpReputation\IpRep
 
 The default `UserAgentFingerprinter` hashes the user agent with version numbers removed. Browser upgrades should not look like new devices, but identical browser/OS user agents share a fingerprint. This is a heuristic, not proof of a unique physical device or a secure trusted-device token.
 
+For web apps, set `device_fingerprinter` to `Spatie\SuspiciousLogin\Fingerprinters\CookieFingerprinter::class` to distinguish browsers with identical user agents. It hashes a random `suspicious_login_device` cookie, renewed for 365 days per login attempt. Requires the `web` middleware group with `EncryptCookies` and `AddQueuedCookiesToResponse`; never exclude this cookie from encryption. It is HTTP-only, SameSite=Lax and secure on HTTPS or when `session.secure` is enabled. Clearing cookies creates a new identity, and copying a cookie copies that identity. Use the default or an app-owned identifier for stateless APIs.
+
 Implement `Spatie\SuspiciousLogin\Fingerprinters\DeviceFingerprinter::fingerprint(Request $request): string` and configure `device_fingerprinter` with your class to use an application-managed device cookie or identifier. It resolves through the container. Changing algorithms changes existing fingerprints and can flag known users' next logins.
 
 ## Custom model

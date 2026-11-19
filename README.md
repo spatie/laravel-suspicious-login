@@ -160,6 +160,8 @@ You can also add [`MultipleCountriesCheck`](https://spatie.be/docs/laravel-suspi
 
 Checks, actions, geolocation and IP reputation drivers, device fingerprints and the model are all swappable, and the package fires events you can listen for.
 
+The default device fingerprint groups browsers by user agent, ignoring version numbers. For web apps, opt into [cookie-based fingerprints](https://spatie.be/docs/laravel-suspicious-login/v1/advanced-usage/device-fingerprints#content-using-a-device-cookie) to distinguish browsers with identical user agents without JavaScript.
+
 ## Support us
 
 [<img src="https://spatie.be/github-ad-image/laravel-suspicious-login.jpg" width="419px" />](https://spatie.be/github-ad-click/laravel-suspicious-login)
