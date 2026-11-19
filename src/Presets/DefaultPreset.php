@@ -15,7 +15,7 @@ use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
 /**
  * Notifies users about suspicious logins, but never blocks them.
  */
-class BalancedPreset extends Preset
+class DefaultPreset extends Preset
 {
     public function checks(): array
     {

@@ -7,14 +7,12 @@ use Spatie\SuspiciousLogin\Checks\CheckResult;
 use Spatie\SuspiciousLogin\Checks\CountryCheck;
 use Spatie\SuspiciousLogin\Enums\RiskLevel;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
-use Spatie\SuspiciousLogin\Presets\BalancedPreset;
-use Spatie\SuspiciousLogin\Presets\LenientPreset;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 use Spatie\SuspiciousLogin\Presets\MonitorOnlyPreset;
 use Spatie\SuspiciousLogin\Presets\Preset;
-use Spatie\SuspiciousLogin\Presets\StrictPreset;
 
 it('maps scores to risk levels at the thresholds of the preset', function (int $score, RiskLevel $expectedLevel) {
-    expect((new BalancedPreset)->riskLevel($score))->toBe($expectedLevel);
+    expect((new DefaultPreset)->riskLevel($score))->toBe($expectedLevel);
 })->with([
     [0, RiskLevel::Low],
     [39, RiskLevel::Low],
@@ -27,26 +25,28 @@ it('uses configured risk thresholds when the preset does not define them', funct
     config()->set('suspicious-login.risk_thresholds', ['medium' => 22, 'high' => 63]);
 
     expect((new $presetClass)->riskLevel($score))->toBe($expectedLevel);
-})->with([BalancedPreset::class, MonitorOnlyPreset::class])->with([
+})->with([DefaultPreset::class, MonitorOnlyPreset::class])->with([
     [21, RiskLevel::Low],
     [22, RiskLevel::Medium],
     [62, RiskLevel::Medium],
     [63, RiskLevel::High],
 ]);
 
-it('uses preset thresholds instead of configured defaults', function (string $presetClass, int $medium, int $high) {
+it('uses preset thresholds instead of configured defaults', function () {
     config()->set('suspicious-login.risk_thresholds', ['medium' => 22, 'high' => 63]);
 
-    $preset = new $presetClass;
+    $preset = new class extends DefaultPreset
+    {
+        protected int $mediumRiskThreshold = 30;
 
-    expect($preset->riskLevel($medium - 1))->toBe(RiskLevel::Low)
-        ->and($preset->riskLevel($medium))->toBe(RiskLevel::Medium)
-        ->and($preset->riskLevel($high - 1))->toBe(RiskLevel::Medium)
-        ->and($preset->riskLevel($high))->toBe(RiskLevel::High);
-})->with([
-    [StrictPreset::class, 30, 60],
-    [LenientPreset::class, 50, 80],
-]);
+        protected int $highRiskThreshold = 80;
+    };
+
+    expect($preset->riskLevel(29))->toBe(RiskLevel::Low)
+        ->and($preset->riskLevel(30))->toBe(RiskLevel::Medium)
+        ->and($preset->riskLevel(79))->toBe(RiskLevel::Medium)
+        ->and($preset->riskLevel(80))->toBe(RiskLevel::High);
+});
 
 it('allows a preset to override only one threshold', function () {
     config()->set('suspicious-login.risk_thresholds', ['medium' => 22, 'high' => 63]);
@@ -70,7 +70,7 @@ it('allows a preset to override only one threshold', function () {
 it('allows a configured threshold of zero', function () {
     config()->set('suspicious-login.risk_thresholds', ['medium' => 0, 'high' => 63]);
 
-    expect((new BalancedPreset)->riskLevel(0))->toBe(RiskLevel::Medium);
+    expect((new DefaultPreset)->riskLevel(0))->toBe(RiskLevel::Medium);
 });
 
 it('uses a custom preset with custom checks and actions', function () {
@@ -96,7 +96,7 @@ it('uses a custom preset with custom checks and actions', function () {
 });
 
 it('extends a shipped preset with an extra check', function () {
-    config()->set('suspicious-login.preset', BalancedWithAlwaysSuspiciousCheckPreset::class);
+    config()->set('suspicious-login.preset', DefaultWithAlwaysSuspiciousCheckPreset::class);
 
     createUser();
 
@@ -123,7 +123,7 @@ class BlockLoginsFromNorthKoreaPreset extends Preset
     }
 }
 
-class BalancedWithAlwaysSuspiciousCheckPreset extends BalancedPreset
+class DefaultWithAlwaysSuspiciousCheckPreset extends DefaultPreset
 {
     public function checks(): array
     {

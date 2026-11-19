@@ -16,7 +16,7 @@ All of this happens during the login request, right after Laravel logs the user 
 
 ## Risk levels
 
-Two thresholds decide where medium and high risk start. They default to 40 and 70 in `config/suspicious-login.php`, and a preset can override either value. With the default `BalancedPreset` and config:
+Two thresholds decide where medium and high risk start. They default to 40 and 70 in `config/suspicious-login.php`, and a preset can override either value. With `DefaultPreset` and the default config:
 
 | Score | Risk level |
 | --- | --- |
@@ -32,7 +32,7 @@ See [configuring risk thresholds](/docs/laravel-suspicious-login/v1/basic-usage/
 
 Let's go back to Anna from the introduction. She has been logging in every morning from Antwerp on her MacBook. Tonight, someone logs in to her account from New York, using Firefox on Windows.
 
-`BalancedPreset` runs its checks:
+`DefaultPreset` runs its checks:
 
 - `NewDeviceCheck` has never seen this device in one of Anna's logins. **+25**
 - `NewIpCheck` has never seen this IP address. **+10**
@@ -40,7 +40,7 @@ Let's go back to Anna from the introduction. She has been logging in every morni
 - `ImpossibleTravelCheck` compares the location with her login this morning. Antwerp to New York in ten hours is possible by plane, so it passes.
 - `FailedAttemptsCheck`, `CredentialStuffingCheck` and `SuspiciousUserAgentCheck` pass too.
 
-The score is 65, which is medium risk. `BalancedPreset` notifies Anna, and the attempt is stored like this:
+The score is 65, which is medium risk. `DefaultPreset` notifies Anna, and the attempt is stored like this:
 
 ```php
 $attempt->risk_score; // 65

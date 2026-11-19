@@ -3,12 +3,29 @@ title: IP reputation drivers
 weight: 3
 ---
 
-The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node, and how likely it is to be abusive. Only that check uses these drivers, and only `StrictPreset` contains it.
+The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node, and how likely it is to be abusive. Only that check uses these drivers. The built-in presets do not include it.
 
-To enable Tor detection with `StrictPreset`, set these values in `config/suspicious-login.php`, leaving the other options in place:
+To enable Tor detection, add the check to an application-owned preset in `app/SuspiciousLogin/MyPreset.php`:
 
 ```php
-'preset' => Spatie\SuspiciousLogin\Presets\StrictPreset::class,
+namespace App\SuspiciousLogin;
+
+use Spatie\SuspiciousLogin\Checks\IpReputationCheck;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
+
+class MyPreset extends DefaultPreset
+{
+    public function checks(): array
+    {
+        return [...parent::checks(), IpReputationCheck::new()];
+    }
+}
+```
+
+Then select your preset and driver in `config/suspicious-login.php`, leaving the other options in place:
+
+```php
+'preset' => App\SuspiciousLogin\MyPreset::class,
 
 'ip_reputation' => [
     'driver' => 'tor',
@@ -22,7 +39,7 @@ To enable Tor detection with `StrictPreset`, set these values in `config/suspici
 | `tor` | yes | no | nothing |
 | `abuseipdb` | yes | yes | an AbuseIPDB API key |
 
-If you use another preset, [add `IpReputationCheck` to it](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets). Selecting a driver does not add the check for you. The check adds points; it doesn't block a login on its own.
+Selecting a driver does not add the check for you. The check adds points; it doesn't block a login on its own. This example keeps `DefaultPreset`'s notification actions; see [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) to change them.
 
 Results are cached per IP address for a day. The `ip_reputation.cache_ttl` config value is in seconds. Private and reserved IP addresses are never looked up.
 
@@ -98,4 +115,4 @@ Then select the driver in `config/suspicious-login.php`:
 ],
 ```
 
-Its results use the same per-IP cache as the built-in drivers. Add `IpReputationCheck::new()` to your preset if you are not using `StrictPreset`; selecting a driver does not add the check for you.
+Its results use the same per-IP cache as the built-in drivers. Add `IpReputationCheck::new()` to your preset as shown above; selecting a driver does not add the check for you.

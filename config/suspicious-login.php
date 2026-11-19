@@ -3,7 +3,7 @@
 use Spatie\SuspiciousLogin\Fingerprinters\UserAgentFingerprinter;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Notifications\SuspiciousLoginNotification;
-use Spatie\SuspiciousLogin\Presets\BalancedPreset;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 
 return [
     /*
@@ -15,11 +15,11 @@ return [
     /*
      * The preset decides which checks run, how their scores map to a risk
      * level and which actions run for each risk level. The package ships
-     * with LenientPreset, BalancedPreset, StrictPreset, MonitorOnlyPreset
-     * and NonePreset. Extend a preset to build your own. Use
+     * with DefaultPreset, MonitorOnlyPreset and NonePreset.
+     * Extend a preset to build your own. Use
      * SuspiciousLogin::determinePresetUsing() to choose per login.
      */
-    'preset' => BalancedPreset::class,
+    'preset' => DefaultPreset::class,
 
     /*
      * The scores at which medium and high risk start. Presets can override

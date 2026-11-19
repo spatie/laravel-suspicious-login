@@ -16,13 +16,13 @@ The default thresholds live in `config/suspicious-login.php`:
 ],
 ```
 
-`BalancedPreset`, `MonitorOnlyPreset` and custom presets use these values unless they define their own thresholds. `StrictPreset` overrides them with 30 and 60; `LenientPreset` uses 50 and 80.
+`DefaultPreset`, `MonitorOnlyPreset` and custom presets use these values unless they define their own thresholds.
 
 To override either threshold in a preset, define `$mediumRiskThreshold` or `$highRiskThreshold`. A property takes precedence over the config value. Leave a property out to inherit the parent's threshold, or the config value when the parent doesn't define one.
 
 ## Tweaking a shipped preset
 
-Let's say you like `BalancedPreset`, but you want to block logins from one country and you consider a new IP address meaningless because your users are mostly on mobile networks. Extend the preset and override what you need:
+Let's say you like `DefaultPreset`, but you want to block logins from one country and you consider a new IP address meaningless because your users are mostly on mobile networks. Extend the preset and override what you need:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -33,9 +33,9 @@ use Spatie\SuspiciousLogin\Actions\NotifyUserAction;
 use Spatie\SuspiciousLogin\Checks\Check;
 use Spatie\SuspiciousLogin\Checks\CountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewIpCheck;
-use Spatie\SuspiciousLogin\Presets\BalancedPreset;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 
-class MyPreset extends BalancedPreset
+class MyPreset extends DefaultPreset
 {
     protected int $highRiskThreshold = 60;
 

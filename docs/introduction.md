@@ -7,7 +7,7 @@ A login with the correct password can still come from an attacker. This package 
 
 Each suspicious signal adds points to a risk score. Your preset decides which checks run and whether to notify the user, block the login or run your own actions.
 
-For example, Anna usually logs in from Antwerp on her MacBook. Someone signs in to her account from a new device in New York. With the default `BalancedPreset` and its ipinfo location lookup:
+For example, Anna usually logs in from Antwerp on her MacBook. Someone signs in to her account from a new device in New York. With `DefaultPreset` and its ipinfo location lookup:
 
 ```
 Login from a new device                  +25
@@ -17,7 +17,7 @@ Login from a new country (US)            +30
 Risk score                                65  → medium risk
 ```
 
-A medium risk login emails Anna with those reasons. `BalancedPreset` never blocks logins; `StrictPreset` also blocks high risk session logins. You can [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) or [write your own](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
+A medium risk login emails Anna with those reasons. `DefaultPreset` never blocks logins. You can [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset) or [write your own](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) to block high risk logins or run other actions.
 
 Here's what a custom preset looks like:
 

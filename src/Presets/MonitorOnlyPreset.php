@@ -5,10 +5,10 @@ namespace Spatie\SuspiciousLogin\Presets;
 use Spatie\SuspiciousLogin\Actions\Action;
 
 /**
- * Runs the BalancedPreset checks and records the results, but takes no action.
+ * Runs the DefaultPreset checks and records the results, but takes no action.
  * Use it to tune checks and thresholds before you notify or block anyone.
  */
-class MonitorOnlyPreset extends BalancedPreset
+class MonitorOnlyPreset extends DefaultPreset
 {
     public function onMediumRisk(): Action|array
     {

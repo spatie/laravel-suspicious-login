@@ -31,15 +31,15 @@ class AdminLoginCheck extends Check
 
 The `$score` property is the default score. Like every check, yours gets a `score()` method to change it in a preset. The reason you pass to `flag` is stored in the `reasons` of the login attempt and shown in the email to the user, so write it for a person.
 
-To add it to the existing `BalancedPreset` checks, create `app/SuspiciousLogin/MyPreset.php`:
+To add it to the existing `DefaultPreset` checks, create `app/SuspiciousLogin/MyPreset.php`:
 
 ```php
 namespace App\SuspiciousLogin;
 
 use App\SuspiciousLogin\Checks\AdminLoginCheck;
-use Spatie\SuspiciousLogin\Presets\BalancedPreset;
+use Spatie\SuspiciousLogin\Presets\DefaultPreset;
 
-class MyPreset extends BalancedPreset
+class MyPreset extends DefaultPreset
 {
     public function checks(): array
     {
@@ -57,7 +57,7 @@ Then select it in `config/suspicious-login.php`:
 'preset' => App\SuspiciousLogin\MyPreset::class,
 ```
 
-This keeps `BalancedPreset`'s notification actions. To choose your own actions and thresholds, see [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
+This keeps `DefaultPreset`'s notification actions. To choose your own actions and thresholds, see [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets).
 
 ## Looking at earlier logins
 

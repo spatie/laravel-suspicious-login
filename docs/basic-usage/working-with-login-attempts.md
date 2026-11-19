@@ -21,6 +21,29 @@ Every login and failed login is stored as a `Spatie\SuspiciousLogin\Models\Login
 | `reasons` | An array with the check, score and human readable reason for every check that flagged the login. `null` when the login wasn't assessed. |
 | `properties` | Your [custom properties](/docs/laravel-suspicious-login/v1/basic-usage/adding-custom-properties), or `null` when there are none. |
 
+## Inspecting scores and reasons
+
+Query a user's latest attempts through the `LoginAttempt` model:
+
+```php
+use Spatie\SuspiciousLogin\Models\LoginAttempt;
+
+$attempts = LoginAttempt::query()
+    ->whereMorphedTo('authenticatable', $user)
+    ->latest()
+    ->limit(10)
+    ->get();
+
+$summaries = $attempts->map(fn (LoginAttempt $attempt) => [
+    'score' => $attempt->risk_score,
+    'level' => $attempt->risk_level?->value,
+    'reasons' => $attempt->reasons,
+    'blocked' => $attempt->blocked,
+]);
+```
+
+`get()` returns an Eloquent collection. Here, `map()` turns each attempt into a summary you can display or return from a controller. Each attempt's `reasons` contains the flagged checks, their scores, and their explanations. `risk_level` is a `RiskLevel` enum on assessed attempts; failed logins and logins using `NonePreset` have no risk level. `blocked` tells you whether a blocking action rejected the login after authentication succeeded.
+
 ## Showing users their recent logins
 
 ```php

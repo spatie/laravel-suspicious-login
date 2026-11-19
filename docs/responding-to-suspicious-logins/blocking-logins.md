@@ -3,7 +3,7 @@ title: Blocking logins
 weight: 2
 ---
 
-Sometimes telling the user afterwards isn't enough. `Spatie\SuspiciousLogin\Actions\BlockLoginAction` logs the user back out during the login request and rejects it with a validation error. `StrictPreset` uses it for high risk logins.
+Sometimes telling the user afterwards isn't enough. `Spatie\SuspiciousLogin\Actions\BlockLoginAction` logs the user back out during the login request and rejects it with a validation error. The built-in presets never block logins; add this action to your own preset to enable blocking.
 
 ```php
 use Spatie\SuspiciousLogin\Actions\Action;

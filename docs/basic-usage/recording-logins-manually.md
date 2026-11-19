@@ -7,7 +7,7 @@ The package listens for Laravel's `Illuminate\Auth\Events\Login` and `Illuminate
 
 If your app authenticates users in a way that doesn't fire those events, for example by issuing API tokens in your own controller, you can record the logins yourself:
 
-This example uses the default `BalancedPreset`, which notifies but never blocks. Use it after validating the request's email and password fields, and before issuing a token:
+This example uses `DefaultPreset`, which notifies but never blocks. Use it after validating the request's email and password fields, and before issuing a token:
 
 ```php
 use App\Models\User;

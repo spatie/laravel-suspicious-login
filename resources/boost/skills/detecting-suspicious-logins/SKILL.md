@@ -30,9 +30,9 @@ Configure behavior in `config/suspicious-login.php`; use direct config values fo
 ## Presets and risk levels
 
 - Configure a preset class with `suspicious-login.preset`. Extend `Preset`, or extend a built-in preset and append to `parent::checks()`.
-- All preset class names end in `Preset`. `BalancedPreset` notifies at medium and high risk; `LenientPreset` only notifies at high risk; `StrictPreset` notifies at both levels and blocks high-risk session logins; `MonitorOnlyPreset` runs the BalancedPreset checks without actions.
+- All preset class names end in `Preset`. The three built-in presets are `DefaultPreset`, `MonitorOnlyPreset` and `NonePreset`. `DefaultPreset` notifies at medium and high risk; `MonitorOnlyPreset` runs the same checks without actions. No built-in preset blocks logins; add `BlockLoginAction` to a custom preset when needed.
 - `NonePreset` records successful logins without location lookups, checks or actions. Score, level and reasons remain null, and only `LoginAttemptRecordedEvent` fires. Successful unblocked attempts still count as trusted history. Do not substitute an empty custom preset: that still performs location lookups and assigns a risk level.
-- The default config thresholds are medium 40 and high 70. `BalancedPreset` and `MonitorOnlyPreset` inherit them. `StrictPreset` overrides them with 30/60 and `LenientPreset` with 50/80. A custom preset may define either `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold`; omitted values come from config.
+- The default config thresholds are medium 40 and high 70. `DefaultPreset` and `MonitorOnlyPreset` inherit them. A custom preset may define either `protected int $mediumRiskThreshold` or `protected int $highRiskThreshold`; omitted values come from config.
 - Return checks from `checks(): array`. `Check::new()` resolves through the container, and `score()` sets the points added when that check flags a login. Scores are points, not probabilities; the total is capped at 100.
 - `onMediumRisk(): Action|array` and `onHighRisk(): Action|array` are optional and default to no actions. Return one action or an array. High risk only runs the high-risk actions, not the medium-risk actions too. Low risk runs none.
 
@@ -81,14 +81,14 @@ Register it in `config/suspicious-login.php`:
 Register `SuspiciousLogin::determinePresetUsing()` in a service provider's `boot()` method. The callback receives an unsaved `LoginAttempt` with its user relation, guard and custom properties, before location lookup, and returns a preset class name, never null. Resolve per-login state inside the callback rather than capturing a request or user at registration time.
 
 ```php
+use App\SuspiciousLogin\DetectSuspiciousLoginsPreset;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\Presets\NonePreset;
-use Spatie\SuspiciousLogin\Presets\StrictPreset;
 
 SuspiciousLogin::determinePresetUsing(function (LoginAttempt $attempt): string {
     if ($attempt->authenticatable?->is_admin) {
-        return StrictPreset::class;
+        return DetectSuspiciousLoginsPreset::class;
     }
 
     if ($attempt->getProperty('skip_checks')) {

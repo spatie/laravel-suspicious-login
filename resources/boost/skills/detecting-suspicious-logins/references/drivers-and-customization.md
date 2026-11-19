@@ -33,7 +33,7 @@ Set `ip_reputation.driver` directly in `config/suspicious-login.php`, for exampl
 - `tor`: downloads the Tor Project's exit-node list and caches that list for an hour; no API key.
 - `abuseipdb`: requires `ip_reputation.abuseipdb.key`, returns Tor status and abuse confidence. Keep the secret environment-backed in config.
 
-`SuspiciousLogin::ipReputation(string $ip): IpReputation` caches results per public IP for a day (`ip_reputation.cache_ttl` in seconds). Private/reserved IPs are not checked. Remote lookup failures yield no reputation evidence, not a reason to block. Selecting a driver does not add `IpReputationCheck`; StrictPreset includes it, other built-in presets do not.
+`SuspiciousLogin::ipReputation(string $ip): IpReputation` caches results per public IP for a day (`ip_reputation.cache_ttl` in seconds). Private/reserved IPs are not checked. Remote lookup failures yield no reputation evidence, not a reason to block. No built-in preset includes `IpReputationCheck`; add it to a custom preset. Selecting a driver does not add the check.
 
 For a custom driver implement `Spatie\SuspiciousLogin\Drivers\IpReputation\IpReputationDriver::check(string $ip): IpReputation`. Return the package's `Drivers\IpReputation\IpReputation` value object, e.g. `new IpReputation(isTor: false, abuseScore: 75)`. Register through `IpReputationManager::extend()` like geolocation, then select its name in config.
 

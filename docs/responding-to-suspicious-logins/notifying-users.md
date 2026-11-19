@@ -3,7 +3,7 @@ title: Notifying users
 weight: 1
 ---
 
-`Spatie\SuspiciousLogin\Actions\NotifyUserAction` emails the user about a suspicious login. `BalancedPreset` and `StrictPreset` notify on medium and high risk; `LenientPreset` only notifies on high risk. To notify on both levels in your own preset:
+`Spatie\SuspiciousLogin\Actions\NotifyUserAction` emails the user about a suspicious login. `DefaultPreset` notifies on medium and high risk. To notify on both levels in your own preset:
 
 ```php
 use Spatie\SuspiciousLogin\Actions\Action;
