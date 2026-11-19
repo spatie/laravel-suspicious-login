@@ -9,7 +9,7 @@ The package listens to Laravel's authentication events. You don't need to change
 
 ## Create a preset
 
-A preset chooses the checks to run, their scores, and the actions for medium and high risk. Create `app/SuspiciousLogin/ProtectLoginsPreset.php`:
+A preset chooses the checks to run, their scores, and the actions for medium and high risk. Create `app/SuspiciousLogin/MyPreset.php`:
 
 ```php
 namespace App\SuspiciousLogin;
@@ -21,7 +21,7 @@ use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
 use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
 use Spatie\SuspiciousLogin\Presets\Preset;
 
-class ProtectLoginsPreset extends Preset
+class MyPreset extends Preset
 {
     public function checks(): array
     {
@@ -55,7 +55,7 @@ You can also [choose a built-in preset](/docs/laravel-suspicious-login/v1/basic-
 In the published `config/suspicious-login.php`, set these values, leaving the other options in place:
 
 ```php
-'preset' => App\SuspiciousLogin\ProtectLoginsPreset::class,
+'preset' => App\SuspiciousLogin\MyPreset::class,
 
 'risk_thresholds' => [
     'medium' => 40,
