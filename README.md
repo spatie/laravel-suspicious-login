@@ -15,7 +15,9 @@
 
 </div>
 
-A login with the correct password can still come from an attacker. This package looks at everything around that login (the device, the IP address, where it comes from, how many attempts failed before it) and gives it a risk score. Depending on the score, it can notify the user, block the login, or do whatever you want.
+Imagine someone logs in to your account from the other side of the world. If you're travelling, that might be perfectly normal. But if you're sitting at home in Antwerp, it's suspicious. Someone might have gotten hold of your credentials.
+
+We've built this package to notify users about suspicious logins and let you decide what happens next. It checks the device, IP address, location and login history to give each successful login a risk score. Depending on that score, it can email the user, block the login or run your own actions.
 
 Here's how a login from a new laptop in New York, to an account that always logs in from Antwerp, is scored with `DefaultPreset` and geolocation configured:
 

@@ -3,9 +3,11 @@ title: Introduction
 weight: 1
 ---
 
-A login with the correct password can still come from an attacker. This package checks the device, IP address, location and login history for suspicious activity.
+Imagine someone logs in to your account from the other side of the world. If you're travelling, that might be perfectly normal. But if you're sitting at home in Antwerp, it's suspicious. Someone might have gotten hold of your credentials.
 
-Each suspicious signal adds points to a risk score. Your preset decides which checks run and whether to notify the user, block the login or run your own actions.
+We've built this package to notify users about suspicious logins and let you decide what happens next. It checks the device, IP address, location and login history.
+
+Each suspicious signal adds points to a successful login's risk score. Your preset decides which checks run and whether to notify the user, block the login or run your own actions.
 
 For example, Anna usually logs in from Antwerp on her MacBook. Someone signs in to her account from a new device in New York. With `DefaultPreset` and its ipinfo location lookup:
 
