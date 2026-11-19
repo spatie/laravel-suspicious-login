@@ -36,7 +36,9 @@ class MyPreset extends Preset
     {
         return [
             NewDeviceCheck::new()->score(30),
-            ImpossibleTravelCheck::new()->maxSpeedInKilometersPerHour(1000)->score(60),
+            ImpossibleTravelCheck::new()
+                ->maxSpeedInKilometersPerHour(1000)
+                ->score(60),
             CountryCheck::new()->onlyAllow(['BE', 'NL', 'FR'])->score(60),
         ];
     }
