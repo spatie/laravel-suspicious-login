@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use InvalidArgumentException;
 use Spatie\SuspiciousLogin\Drivers\Geolocation\Location;
 use Spatie\SuspiciousLogin\Enums\RiskLevel;
 
@@ -88,21 +87,11 @@ class LoginAttempt extends Model
      */
     public function history(): Builder
     {
-        $until = $this->created_at ?? now();
-        $lookbackDays = config('suspicious-login.history_lookback_days');
-
-        if ($lookbackDays !== null) {
-            if (! is_int($lookbackDays) || $lookbackDays < 1) {
-                throw new InvalidArgumentException('history_lookback_days must be a positive integer or null.');
-            }
-        }
-
         return static::query()
             ->where('authenticatable_type', $this->authenticatable_type)
             ->where('authenticatable_id', $this->authenticatable_id)
             ->when($this->exists, fn (Builder $query) => $query->whereKeyNot($this->getKey()))
-            ->where('created_at', '<=', $until)
-            ->when($lookbackDays !== null, fn (Builder $query) => $query->since($until->copy()->subDays($lookbackDays)));
+            ->where('created_at', '<=', $this->created_at ?? now());
     }
 
     /**

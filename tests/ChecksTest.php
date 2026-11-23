@@ -8,8 +8,6 @@ use Spatie\SuspiciousLogin\Checks\ImpossibleTravelCheck;
 use Spatie\SuspiciousLogin\Checks\IpReputationCheck;
 use Spatie\SuspiciousLogin\Checks\MultipleCountriesCheck;
 use Spatie\SuspiciousLogin\Checks\NewCountryCheck;
-use Spatie\SuspiciousLogin\Checks\NewDeviceCheck;
-use Spatie\SuspiciousLogin\Checks\NewIpCheck;
 use Spatie\SuspiciousLogin\Checks\SuspiciousUserAgentCheck;
 use Spatie\SuspiciousLogin\Checks\UnusualTimeCheck;
 use Spatie\SuspiciousLogin\Models\LoginAttempt;
@@ -68,70 +66,6 @@ it('only counts failed attempts of the same user inside the time window', functi
     expect($check->threshold(2)->evaluate(newAttempt($this->user))->suspicious)->toBeTrue()
         ->and($check->threshold(3)->evaluate(newAttempt($this->user))->suspicious)->toBeFalse();
 });
-
-it('can stop failure counting at the threshold without claiming an exact total', function (string $checkClass) {
-    foreach (range(1, 7) as $number) {
-        storeAttempt($this->user, ['successful' => false, 'identifier' => "user{$number}@example.test"]);
-    }
-
-    $attempt = newAttempt($this->user);
-    $check = $checkClass::new()->threshold(5)->score(37);
-    $exact = $check->evaluate($attempt);
-    $bounded = $check->limitToThreshold()->evaluate($attempt);
-
-    expect($exact->reason)->toContain('7 ')
-        ->and($bounded->suspicious)->toBeTrue()
-        ->and($bounded->score)->toBe(37)
-        ->and($bounded->reason)->toContain('at least 5 ')
-        ->and($check->threshold(7)->evaluate($attempt)->suspicious)->toBeTrue()
-        ->and($check->threshold(8)->evaluate($attempt)->suspicious)->toBeFalse()
-        ->and($check->threshold(5)->limitToThreshold(false)->evaluate($attempt)->reason)->toBe($exact->reason);
-})->with([FailedAttemptsCheck::class, CredentialStuffingCheck::class]);
-
-it('preserves failure windows account scoping and persisted-attempt exclusion when bounded', function () {
-    $time = now()->subDay();
-    storeAttempt($this->user, ['successful' => false, 'created_at' => $time->copy()->subMinutes(15)]);
-    storeAttempt($this->user, ['successful' => false, 'created_at' => $time->copy()->subMinutes(15)->subSecond()]);
-    storeAttempt($this->user, ['successful' => false, 'created_at' => $time->copy()->addSecond()]);
-    storeAttempt(createUser('other@example.test'), ['successful' => false, 'created_at' => $time]);
-    storeAttempt($this->user, ['successful' => true, 'created_at' => $time]);
-    $attempt = storeAttempt($this->user, ['successful' => false, 'created_at' => $time]);
-    $check = FailedAttemptsCheck::new()->limitToThreshold();
-
-    expect($check->threshold(1)->evaluate($attempt)->reason)->toBe('at least 1 failed login attempts in the last 15 minutes')
-        ->and($check->threshold(2)->evaluate($attempt)->suspicious)->toBeFalse();
-});
-
-it('bounds distinct non-null identifiers rather than raw failures and leaves ip history independent of lookback', function () {
-    config()->set('suspicious-login.history_lookback_days', 1);
-    foreach (range(1, 8) as $number) {
-        storeAttempt(null, ['successful' => false, 'identifier' => 'repeated@example.test']);
-    }
-    storeAttempt(null, ['successful' => false, 'identifier' => null]);
-    storeAttempt(null, ['successful' => false, 'identifier' => 'expired@example.test', 'created_at' => now()->subHour()->subSecond()]);
-    storeAttempt(null, ['successful' => false, 'identifier' => 'other-ip@example.test', 'ip_address' => '192.0.2.2']);
-    storeAttempt(null, ['successful' => true, 'identifier' => 'successful@example.test']);
-    $attempt = newAttempt($this->user);
-    $check = CredentialStuffingCheck::new()->limitToThreshold()->threshold(2);
-
-    expect($check->evaluate($attempt)->suspicious)->toBeFalse();
-
-    storeAttempt(null, ['successful' => false, 'identifier' => 'boundary@example.test', 'created_at' => now()->subHour()]);
-
-    expect($check->evaluate($attempt)->reason)->toBe('This IP address failed to log in to at least 2 accounts in the last 60 minutes')
-        ->and($check->threshold(3)->evaluate($attempt)->suspicious)->toBeFalse();
-
-    storeAttempt(null, ['successful' => false, 'identifier' => 'future@example.test', 'created_at' => now()->addDay()]);
-
-    expect($check->evaluate($attempt)->suspicious)->toBeTrue()
-        ->and($check->evaluate(newAttempt($this->user, ['ip_address' => null]))->suspicious)->toBeFalse();
-});
-
-it('preserves non-positive failure thresholds in bounded mode', function (string $checkClass, int $threshold) {
-    $check = $checkClass::new()->threshold($threshold)->limitToThreshold();
-
-    expect($check->evaluate(newAttempt($this->user))->suspicious)->toBeTrue();
-})->with([FailedAttemptsCheck::class, CredentialStuffingCheck::class])->with([0, -1]);
 
 it('considers the hours around midnight close to each other', function (int $previousHour, int $hour, bool $expectedSuspicious) {
     foreach (range(1, 10) as $day) {
@@ -224,76 +158,6 @@ it('only compares known countries in earlier successful unblocked logins of the 
 it('does not flag multiple countries without earlier logins', function () {
     expect(MultipleCountriesCheck::new()->evaluate(newAttempt($this->user, ['country_code' => 'BE']))->suspicious)->toBeFalse();
 });
-
-it('only forgets established devices ips and countries when lookback is enabled', function (string $checkClass, string $attribute, string $known, string $recent) {
-    $time = now()->subDays(10);
-    storeAttempt($this->user, [$attribute => $known, 'created_at' => $time->copy()->subDays(31)]);
-    storeAttempt($this->user, [$attribute => $recent, 'created_at' => $time->copy()->subDay()]);
-    $attempt = newAttempt($this->user, [$attribute => $known, 'created_at' => $time]);
-
-    expect($checkClass::new()->evaluate($attempt)->suspicious)->toBeFalse();
-
-    config()->set('suspicious-login.history_lookback_days', 30);
-
-    expect($checkClass::new()->evaluate($attempt)->suspicious)->toBeTrue();
-})->with([
-    'device' => [NewDeviceCheck::class, 'device_fingerprint', 'known', 'recent'],
-    'ip' => [NewIpCheck::class, 'ip_address', '192.0.2.1', '192.0.2.2'],
-    'country' => [NewCountryCheck::class, 'country_code', 'BE', 'US'],
-]);
-
-it('treats a user with only expired history as having no baseline', function () {
-    config()->set('suspicious-login.history_lookback_days', 1);
-    storeAttempt($this->user, ['device_fingerprint' => 'old', 'country_code' => 'US', 'created_at' => now()->subDays(2)]);
-    $attempt = newAttempt($this->user, ['country_code' => 'BE']);
-
-    expect(NewDeviceCheck::new()->evaluate($attempt)->suspicious)->toBeFalse()
-        ->and(NewCountryCheck::new()->evaluate($attempt)->suspicious)->toBeFalse();
-});
-
-it('keeps lookback boundaries relative to the attempt and excludes itself other accounts and future records', function () {
-    config()->set('suspicious-login.history_lookback_days', 2);
-    $time = now()->subMonth();
-    $boundary = storeAttempt($this->user, ['created_at' => $time->copy()->subDays(2)]);
-    storeAttempt($this->user, ['created_at' => $time->copy()->subDays(2)->subSecond()]);
-    storeAttempt($this->user, ['created_at' => $time->copy()->addSecond()]);
-    storeAttempt(createUser('other@example.com'), ['created_at' => $time]);
-    storeAttempt($this->user, ['authenticatable_type' => 'another-model', 'created_at' => $time]);
-    $attempt = storeAttempt($this->user, ['created_at' => $time]);
-
-    expect($attempt->history()->pluck('id')->all())->toBe([$boundary->id])
-        ->and($attempt->created_at->equalTo($time))->toBeTrue();
-});
-
-it('does not shorten the default failure and multiple-country windows with a one-day lookback', function () {
-    config()->set('suspicious-login.history_lookback_days', 1);
-    storeAttempt($this->user, ['successful' => false, 'created_at' => now()->subMinutes(15)]);
-    storeAttempt($this->user, ['successful' => false, 'created_at' => now()->subMinutes(15)->subSecond()]);
-    storeAttempt($this->user, ['country_code' => 'US', 'created_at' => now()->subHour()]);
-
-    expect(FailedAttemptsCheck::new()->threshold(1)->evaluate(newAttempt($this->user))->reason)
-        ->toBe('1 failed login attempts in the last 15 minutes')
-        ->and(MultipleCountriesCheck::new()->evaluate(newAttempt($this->user, ['country_code' => 'BE']))->suspicious)->toBeTrue();
-});
-
-it('can stop recognizing impossible travel when the previous located login expires', function () {
-    storeAttempt($this->user, ['latitude' => 40.7128, 'longitude' => -74.0060, 'country_code' => 'US', 'created_at' => now()->subHours(25)]);
-    storeAttempt($this->user, ['country_code' => null, 'created_at' => now()->subMinute()]);
-    $attempt = newAttempt($this->user, ['latitude' => 51.2194, 'longitude' => 4.4025, 'country_code' => 'BE']);
-    $check = ImpossibleTravelCheck::new()->maxSpeedInKilometersPerHour(100);
-
-    expect($check->evaluate($attempt)->suspicious)->toBeTrue();
-
-    config()->set('suspicious-login.history_lookback_days', 1);
-
-    expect($check->evaluate($attempt)->suspicious)->toBeFalse();
-});
-
-it('rejects invalid lookbacks instead of silently removing history', function (mixed $days) {
-    config()->set('suspicious-login.history_lookback_days', $days);
-
-    newAttempt($this->user)->history();
-})->with([0, -1, 1.5, '30', false])->throws(InvalidArgumentException::class);
 
 it('can allow or block countries', function () {
     $attemptFrom = fn (string $country) => newAttempt($this->user, ['country_code' => $country]);

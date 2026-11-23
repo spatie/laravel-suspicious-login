@@ -104,14 +104,6 @@ return [
     'mailable' => SuspiciousLoginMail::class,
 
     /*
-     * Limit history() to this many days before the attempt, or null to use all
-     * retained history. Must be a positive integer when enabled. Older devices,
-     * IPs and countries will be forgotten, and travel checks may lose their
-     * previous located login. This does not limit the number of rows scanned.
-     */
-    'history_lookback_days' => null,
-
-    /*
      * Login attempts older than this many days are deleted when you run
      * `php artisan model:prune --model="Spatie\SuspiciousLogin\Models\LoginAttempt"`.
      */
