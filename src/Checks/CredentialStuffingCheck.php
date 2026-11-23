@@ -15,6 +15,8 @@ class CredentialStuffingCheck extends Check
 
     protected int $minutes = 60;
 
+    protected bool $limitToThreshold = false;
+
     public function threshold(int $accounts): static
     {
         $this->threshold = $accounts;
@@ -29,6 +31,13 @@ class CredentialStuffingCheck extends Check
         return $this;
     }
 
+    public function limitToThreshold(bool $limit = true): static
+    {
+        $this->limitToThreshold = $limit;
+
+        return $this;
+    }
+
     public function evaluate(LoginAttempt $attempt): CheckResult
     {
         if (! $attempt->ip_address) {
@@ -37,18 +46,27 @@ class CredentialStuffingCheck extends Check
 
         $since = ($attempt->created_at ?? now())->copy()->subMinutes($this->minutes);
 
-        $accounts = $attempt->newQuery()
+        $query = $attempt->newQuery()
             ->failed()
             ->since($since)
             ->where('ip_address', $attempt->ip_address)
-            ->distinct()
-            ->count('identifier');
+            ->distinct();
+
+        $accounts = $this->limitToThreshold
+            ? $attempt->getConnection()->query()
+                ->fromSub($query->select('identifier')->whereNotNull('identifier')->limit(max(1, $this->threshold)), 'failed_accounts')
+                ->count()
+            : $query->count('identifier');
 
         if ($accounts < $this->threshold) {
             return $this->pass();
         }
 
-        return $this->flag(__('This IP address failed to log in to :count accounts in the last :minutes minutes', [
+        $reason = $this->limitToThreshold
+            ? 'This IP address failed to log in to at least :count accounts in the last :minutes minutes'
+            : 'This IP address failed to log in to :count accounts in the last :minutes minutes';
+
+        return $this->flag(__($reason, [
             'count' => $accounts,
             'minutes' => $this->minutes,
         ]));

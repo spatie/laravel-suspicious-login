@@ -26,3 +26,15 @@ FailedAttemptsCheck::new()
     ->threshold(10)
     ->withinMinutes(60),
 ```
+
+### Stopping at the threshold
+
+By default, the check counts every matching failure and reports an exact total. For busy accounts, you can opt into counting only enough failures to decide whether to flag the login:
+
+```php
+FailedAttemptsCheck::new()
+    ->threshold(5)
+    ->limitToThreshold(),
+```
+
+The score, threshold, and time window stay the same. The reason says "at least 5 failed login attempts" instead of claiming an exact total. The database counts a limited subquery; putting a limit on an aggregate count itself would not limit the rows counted. Use `limitToThreshold(false)` to restore exact counting. This option is disabled by default, including in `DefaultPreset`.

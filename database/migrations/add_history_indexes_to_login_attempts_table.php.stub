@@ -1,0 +1,20 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('login_attempts', function (Blueprint $table) {
+            $table->index('created_at', 'login_attempts_created_at_index');
+            $table->index(['authenticatable_type', 'authenticatable_id', 'successful', 'created_at'], 'login_attempts_account_success_time_index');
+            $table->index(['authenticatable_type', 'authenticatable_id', 'successful', 'blocked', 'created_at'], 'login_attempts_account_trusted_time_index');
+            $table->index(['authenticatable_type', 'authenticatable_id', 'successful', 'blocked', 'device_fingerprint', 'created_at'], 'login_attempts_account_device_time_index');
+            $table->index(['authenticatable_type', 'authenticatable_id', 'successful', 'blocked', 'country_code', 'created_at'], 'login_attempts_account_country_time_index');
+            $table->index(['authenticatable_type', 'authenticatable_id', 'successful', 'blocked', 'ip_address', 'created_at'], 'login_attempts_account_ip_time_index');
+        });
+    }
+};

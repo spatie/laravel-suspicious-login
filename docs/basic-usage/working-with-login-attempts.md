@@ -91,4 +91,30 @@ $failedAttemptsToday = $attempt->history()->failed()->since(now()->startOfDay())
 
 History is scoped to the user, not the guard. Logins to different guards share history when they use the same user model and ID.
 
+## Limiting history lookback
+
+By default, `history()` uses all retained attempts up to and including the current attempt's timestamp, excluding the current record itself. You can opt into a shorter history in `config/suspicious-login.php`:
+
+```php
+'history_lookback_days' => 30,
+```
+
+Use a positive integer number of days, or `null` to keep the default. Invalid values throw an `InvalidArgumentException` when history is queried. The lower boundary is inclusive and relative to the attempt's timestamp, not today's date. This also works when reassessing older attempts.
+
+Enabling this changes what the checks know:
+
+- `NewDeviceCheck`, `NewIpCheck`, and `NewCountryCheck` forget matches outside the lookback. An established device can look new if the user has other trusted history inside the lookback. If no relevant trusted history remains, these checks pass as they do for a first login.
+- `ImpossibleTravelCheck` only compares with a located trusted login inside the lookback. If none remains, it passes. This can hide travel that a custom speed threshold would otherwise flag.
+- `UnusualTimeCheck` has fewer records to learn from and may no longer meet its minimum number of logins.
+- `FailedAttemptsCheck` and `MultipleCountriesCheck` use the intersection of their own windows and the lookback. A one-day lookback does not shorten their default 15-minute and 60-minute windows, but it can shorten custom windows longer than a day.
+- `CredentialStuffingCheck` queries failures by IP independently of `history()`, so this setting does not change its window.
+
+Custom checks and application queries that call `history()` also inherit the lookback. It does not delete records, change `since()` itself, or change queries built directly with `LoginAttempt::query()`. Keep it `null` if long-term recognition matters more than restricting the history searched.
+
+## Query costs on large tables
+
+Publish and run the [history-index migration](/docs/laravel-suspicious-login/v1/installation-setup#content-adding-history-indexes-to-an-existing-installation) when upgrading an existing installation. The indexes support account-specific failure windows, trusted history ordered by time, device/country/IP recognition, and pruning by timestamp. They use ordinary compound indexes rather than database-specific partial or expression indexes. The original account index remains available for compact account-only queries, and the global IP/time index still supports credential-stuffing queries.
+
+Indexes and lookbacks do not impose a fixed limit on database work. A million attempts can fit inside a short window. Travel checks can still scan many recent trusted logins without coordinates. Exact failure counts still inspect all matching failures. Optional `limitToThreshold()` on [failed attempts](/docs/laravel-suspicious-login/v1/available-checks/failed-attempts) and [credential stuffing](/docs/laravel-suspicious-login/v1/available-checks/credential-stuffing) avoids counting beyond the configured threshold, but finding enough distinct identifiers can still scan the entire IP window. Query plans also depend on your database's optimizer and data distribution.
+
 When you [use your own model](/docs/laravel-suspicious-login/v1/advanced-usage/using-your-own-model), import that model in your application queries instead of the package model.

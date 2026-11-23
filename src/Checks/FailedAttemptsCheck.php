@@ -12,6 +12,8 @@ class FailedAttemptsCheck extends Check
 
     protected int $minutes = 15;
 
+    protected bool $limitToThreshold = false;
+
     public function threshold(int $failedAttempts): static
     {
         $this->threshold = $failedAttempts;
@@ -26,17 +28,34 @@ class FailedAttemptsCheck extends Check
         return $this;
     }
 
+    public function limitToThreshold(bool $limit = true): static
+    {
+        $this->limitToThreshold = $limit;
+
+        return $this;
+    }
+
     public function evaluate(LoginAttempt $attempt): CheckResult
     {
         $since = ($attempt->created_at ?? now())->copy()->subMinutes($this->minutes);
 
-        $failedAttempts = $attempt->history()->failed()->since($since)->count();
+        $query = $attempt->history()->failed()->since($since);
+
+        $failedAttempts = $this->limitToThreshold
+            ? $attempt->getConnection()->query()
+                ->fromSub($query->select($attempt->getKeyName())->limit(max(1, $this->threshold)), 'failed_attempts')
+                ->count()
+            : $query->count();
 
         if ($failedAttempts < $this->threshold) {
             return $this->pass();
         }
 
-        return $this->flag(__(':count failed login attempts in the last :minutes minutes', [
+        $reason = $this->limitToThreshold
+            ? 'at least :count failed login attempts in the last :minutes minutes'
+            : ':count failed login attempts in the last :minutes minutes';
+
+        return $this->flag(__($reason, [
             'count' => $failedAttempts,
             'minutes' => $this->minutes,
         ]));

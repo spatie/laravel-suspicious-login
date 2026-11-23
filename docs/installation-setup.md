@@ -130,6 +130,14 @@ return [
     'mailable' => Spatie\SuspiciousLogin\Mail\SuspiciousLoginMail::class,
 
     /*
+     * Limit history() to this many days before the attempt, or null to use all
+     * retained history. Must be a positive integer when enabled. Older devices,
+     * IPs and countries will be forgotten, and travel checks may lose their
+     * previous located login. This does not limit the number of rows scanned.
+     */
+    'history_lookback_days' => null,
+
+    /*
      * Login attempts older than this many days are deleted when you run
      * `php artisan model:prune --model="Spatie\SuspiciousLogin\Models\LoginAttempt"`.
      */
@@ -146,6 +154,19 @@ php artisan vendor:publish --tag="suspicious-login-config"
 php artisan vendor:publish --tag="suspicious-login-migrations"
 php artisan migrate
 ```
+
+## Adding history indexes to an existing installation
+
+After updating the package, publish its migrations again without `--force`, then run your application's pending migrations:
+
+```bash
+php artisan vendor:publish --tag="suspicious-login-migrations"
+php artisan migrate
+```
+
+The new `add_history_indexes_to_login_attempts_table` migration adds indexes to the existing table without changing login data or detection rules. New installations run it after the table-creation migration. Both migrations are forward-only. Do not replace or rerun your original table-creation migration.
+
+Adding indexes to a large table needs extra disk space and can lock the table, depending on your database and version. Test the migration on a representative copy first and plan an appropriate maintenance window or your database's online schema-change process. If you customized the table or already added equivalent indexes, adapt the published migration before running it. The wider indexes also increase storage and the cost of recording attempts.
 
 ## Geolocation
 

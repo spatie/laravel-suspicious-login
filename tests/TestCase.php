@@ -40,6 +40,7 @@ class TestCase extends Orchestra
         });
 
         (include __DIR__.'/../database/migrations/create_login_attempts_table.php.stub')->up();
+        (include __DIR__.'/../database/migrations/add_history_indexes_to_login_attempts_table.php.stub')->up();
     }
 
     protected function defineRoutes($router)
