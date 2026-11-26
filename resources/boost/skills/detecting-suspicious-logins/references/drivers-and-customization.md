@@ -32,6 +32,7 @@ Set `ip_reputation.driver` directly in `config/suspicious-login.php`, for exampl
 - `null` (default): no reputation data.
 - `tor`: downloads the Tor Project's exit-node list and caches that list for an hour; no API key.
 - `abuseipdb`: requires `ip_reputation.abuseipdb.key`, returns Tor status and abuse confidence. Keep the secret environment-backed in config.
+- `vpndetection`: calls the VPNDetection API, returns Tor and VPN status; no API key. `IpReputationCheck::allowVpn()` stops flagging VPNs.
 
 `SuspiciousLogin::ipReputation(string $ip): IpReputation` caches results per public IP for a day (`ip_reputation.cache_ttl` in seconds). Private/reserved IPs are not checked. Remote lookup failures yield no reputation evidence, not a reason to block. No built-in preset includes `IpReputationCheck`; add it to a custom preset. Selecting a driver does not add the check.
 

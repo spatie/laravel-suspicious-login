@@ -3,7 +3,7 @@ title: IP reputation
 weight: 11
 ---
 
-`Spatie\SuspiciousLogin\Checks\IpReputationCheck` flags logins from IP addresses with a bad reputation: Tor exit nodes, and addresses that other sites reported for abuse.
+`Spatie\SuspiciousLogin\Checks\IpReputationCheck` flags logins from IP addresses with a bad reputation: Tor exit nodes, VPNs, and addresses that other sites reported for abuse.
 
 This check needs an [IP reputation driver](/docs/laravel-suspicious-login/v1/advanced-usage/ip-reputation-drivers). With the default `null` driver, it never flags anything.
 
@@ -29,4 +29,10 @@ Some people use Tor to protect their privacy. If your app should welcome them, s
 
 ```php
 IpReputationCheck::new()->allowTor(),
+```
+
+The `vpndetection` driver also reports VPNs. To stop flagging them:
+
+```php
+IpReputationCheck::new()->allowVpn(),
 ```

@@ -3,7 +3,7 @@ title: IP reputation drivers
 weight: 3
 ---
 
-The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node, and how likely it is to be abusive. Only that check uses these drivers. The built-in presets do not include it.
+The [IP reputation check](/docs/laravel-suspicious-login/v1/available-checks/ip-reputation) asks an IP reputation driver whether an IP address is a Tor exit node or a VPN, and how likely it is to be abusive. Only that check uses these drivers. The built-in presets do not include it.
 
 To enable Tor detection, add the check to an application-owned preset in `app/SuspiciousLogin/MyPreset.php`:
 
@@ -33,11 +33,12 @@ Then select your preset and driver in `config/suspicious-login.php`, leaving the
 ],
 ```
 
-| Driver | Tor exit nodes | Abuse score | Needs |
-| --- | --- | --- | --- |
-| `null` | no | no | nothing, this is the default |
-| `tor` | yes | no | nothing |
-| `abuseipdb` | yes | yes | an AbuseIPDB API key |
+| Driver | Tor exit nodes | VPNs | Abuse score | Needs |
+| --- | --- | --- | --- | --- |
+| `null` | no | no | no | nothing, this is the default |
+| `tor` | yes | no | no | nothing |
+| `abuseipdb` | yes | no | yes | an AbuseIPDB API key |
+| `vpndetection` | yes | yes | no | nothing |
 
 Selecting a driver does not add the check for you. The check adds points; it doesn't block a login on its own. This example keeps `DefaultPreset`'s notification actions; see [customizing presets](/docs/laravel-suspicious-login/v1/basic-usage/customizing-presets) to change them.
 
@@ -72,6 +73,19 @@ The `abuseipdb` driver calls the [AbuseIPDB](https://www.abuseipdb.com) API. It 
 Keep the key in your deployment's secrets or `.env` file rather than committing it to source control.
 
 When the API can't be reached or returns an unsuccessful response, this driver returns no Tor flag or abuse score. The reputation check then adds no points, but other checks can still flag or block the login.
+
+## VPNDetection
+
+The `vpndetection` driver calls the [VPNDetection](https://vpndetection.io) API, which returns whether the IP address is a VPN server or a Tor node. It needs no account or API key ([terms](https://vpndetection.io/terms), [privacy](https://vpndetection.io/privacy)):
+
+```php
+'ip_reputation' => [
+    'driver' => 'vpndetection',
+    // ...
+],
+```
+
+Like the `abuseipdb` driver, it returns no flags when the API can't be reached.
 
 ## Creating your own driver
 

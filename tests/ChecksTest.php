@@ -206,6 +206,21 @@ it('flags ips with a high abuse score with the abuseipdb driver', function () {
     Http::assertSent(fn ($request) => $request->hasHeader('Key', 'test-key'));
 });
 
+it('flags vpns and tor nodes with the vpndetection driver', function () {
+    config()->set('suspicious-login.ip_reputation.driver', 'vpndetection');
+
+    Http::fake([
+        'api.vpndetection.io/185.65.135.230' => Http::response(['is_vpn' => true, 'is_tor' => false]),
+        'api.vpndetection.io/185.220.101.2' => Http::response(['is_vpn' => false, 'is_tor' => true]),
+        'api.vpndetection.io/*' => Http::response(['is_vpn' => false, 'is_tor' => false]),
+    ]);
+
+    expect(IpReputationCheck::new()->evaluate(newAttempt($this->user, ['ip_address' => '185.65.135.230']))->suspicious)->toBeTrue()
+        ->and(IpReputationCheck::new()->evaluate(newAttempt($this->user, ['ip_address' => '185.220.101.2']))->suspicious)->toBeTrue()
+        ->and(IpReputationCheck::new()->evaluate(newAttempt($this->user, ['ip_address' => '81.82.83.84']))->suspicious)->toBeFalse()
+        ->and(IpReputationCheck::new()->allowVpn()->evaluate(newAttempt($this->user, ['ip_address' => '185.65.135.230']))->suspicious)->toBeFalse();
+});
+
 /** @param  array<string, mixed>  $attributes */
 function newAttempt(?User $user, array $attributes = []): LoginAttempt
 {
