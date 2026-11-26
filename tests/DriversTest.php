@@ -5,6 +5,7 @@ use Spatie\SuspiciousLogin\Drivers\Geolocation\CloudflareDriver;
 use Spatie\SuspiciousLogin\Drivers\Geolocation\GeolocationDriver;
 use Spatie\SuspiciousLogin\Drivers\Geolocation\GeolocationManager;
 use Spatie\SuspiciousLogin\Drivers\Geolocation\Location;
+use Spatie\SuspiciousLogin\Drivers\IpReputation\IpReputation;
 use Spatie\SuspiciousLogin\Exceptions\InvalidDriverConfig;
 use Spatie\SuspiciousLogin\Facades\SuspiciousLogin;
 
@@ -88,3 +89,12 @@ it('explains how to fix a missing maxmind database', function () {
 
     SuspiciousLogin::locate('81.82.83.84');
 })->throws(InvalidDriverConfig::class, '/does/not/exist.mmdb');
+
+it('reads an ip reputation cached before vpn flags existed', function () {
+    $cached = 'O:56:"'.IpReputation::class.'":2:{s:5:"isTor";b:1;s:10:"abuseScore";i:80;}';
+
+    expect(unserialize($cached))
+        ->isTor->toBeTrue()
+        ->abuseScore->toBe(80)
+        ->isVpn->toBeFalse();
+});

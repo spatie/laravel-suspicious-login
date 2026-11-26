@@ -6,7 +6,7 @@ use Spatie\SuspiciousLogin\Models\LoginAttempt;
 use Spatie\SuspiciousLogin\SuspiciousLogin;
 
 /**
- * Uses the configured IP reputation driver to flag Tor exit nodes and IPs reported for abuse.
+ * Uses the configured IP reputation driver to flag Tor exit nodes, VPNs and IPs reported for abuse.
  */
 class IpReputationCheck extends Check
 {
@@ -15,6 +15,8 @@ class IpReputationCheck extends Check
     protected int $minimumAbuseScore = 50;
 
     protected bool $flagTor = true;
+
+    protected bool $flagVpn = true;
 
     public function __construct(
         protected SuspiciousLogin $suspiciousLogin,
@@ -34,6 +36,13 @@ class IpReputationCheck extends Check
         return $this;
     }
 
+    public function allowVpn(): static
+    {
+        $this->flagVpn = false;
+
+        return $this;
+    }
+
     public function evaluate(LoginAttempt $attempt): CheckResult
     {
         if (! $attempt->ip_address) {
@@ -45,6 +54,12 @@ class IpReputationCheck extends Check
         if ($this->flagTor) {
             if ($reputation->isTor) {
                 return $this->flag(__('Login from a Tor exit node'));
+            }
+        }
+
+        if ($this->flagVpn) {
+            if ($reputation->isVpn) {
+                return $this->flag(__('Login from a VPN'));
             }
         }
 

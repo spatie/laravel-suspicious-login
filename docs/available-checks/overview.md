@@ -21,7 +21,7 @@ These are the checks that ship with the package:
 | [Credential stuffing](credential-stuffing) | the IP address recently failed to log in to many different accounts | 40 |
 | [Unusual time](unusual-time) | the user never logs in around this hour | 15 |
 | [Suspicious user agent](suspicious-user-agent) | there is no user agent, or it belongs to a script or headless browser | 20 |
-| [IP reputation](ip-reputation) | the IP address is a Tor exit node or reported for abuse | 50 |
+| [IP reputation](ip-reputation) | the IP address is a Tor exit node, a VPN or reported for abuse | 50 |
 
 The scores above are the checks' own defaults. Built-in presets can [assign different scores](/docs/laravel-suspicious-login/v1/basic-usage/choosing-a-preset#content-what-each-preset-contains). `CountryCheck` and `MultipleCountriesCheck` are not enabled by any built-in preset; add them to your own preset if you need them.
 

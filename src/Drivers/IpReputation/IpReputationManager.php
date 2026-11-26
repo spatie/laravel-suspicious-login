@@ -26,4 +26,9 @@ class IpReputationManager extends Manager
     {
         return new AbuseIpDbDriver($this->config->get('suspicious-login.ip_reputation.abuseipdb.key'));
     }
+
+    public function createVpndetectionDriver(): VpnDetectionDriver
+    {
+        return new VpnDetectionDriver;
+    }
 }

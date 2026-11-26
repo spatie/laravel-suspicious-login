@@ -62,10 +62,10 @@ return [
 
     'ip_reputation' => [
         /*
-         * The driver used to determine if an IP address is known to be abusive
-         * or a Tor exit node. Only used by IpReputationCheck.
+         * The driver used to determine if an IP address is known to be abusive,
+         * a Tor exit node or a VPN. Only used by IpReputationCheck.
          *
-         * Supported: "null", "tor", "abuseipdb"
+         * Supported: "null", "tor", "abuseipdb", "vpndetection"
          */
         'driver' => 'null',
 
